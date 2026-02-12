@@ -576,7 +576,12 @@ let mobileIsPortrait = false; // Track orientation for portrait message
 
 function resizeCanvas() {
     if (isMobile) {
+        const wasPortrait = mobileIsPortrait;
         mobileIsPortrait = window.innerHeight > window.innerWidth;
+        // Re-randomize portrait character when entering portrait
+        if (mobileIsPortrait && !wasPortrait) {
+            portraitCharIdx = Math.floor(Math.random() * CHARACTERS.length);
+        }
 
         const vw = window.innerWidth;
         const vh = window.innerHeight;
@@ -5894,42 +5899,106 @@ function update() {
     lastTapY = -1;
 }
 
+let portraitCharIdx = -1; // Random character for portrait screen
+
 function drawPortraitMessage() {
     // Full canvas black background
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#0a0800';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Pick a random character on first call
+    if (portraitCharIdx < 0) {
+        portraitCharIdx = Math.floor(Math.random() * CHARACTERS.length);
+    }
+    const char = CHARACTERS[portraitCharIdx];
     const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
 
-    // Rotate phone icon
-    ctx.save();
-    ctx.translate(centerX, centerY - 80);
-    ctx.rotate(Math.sin(Date.now() * 0.003) * 0.3); // gentle rocking animation
-    ctx.font = '60px sans-serif';
+    // Draw character idle sprite
+    const idlePath = char.sprites && char.sprites.idle;
+    const idleSprite = idlePath ? spriteCache[idlePath] : null;
+    const hasSprite = idleSprite && idleSprite.complete && idleSprite.naturalWidth > 0;
+
+    const charY = canvas.height * 0.32;
+    if (hasSprite) {
+        const spriteScale = 0.5;
+        const sw = idleSprite.naturalWidth * spriteScale;
+        const sh = idleSprite.naturalHeight * spriteScale;
+        ctx.drawImage(idleSprite, centerX - sw / 2, charY - sh / 2, sw, sh);
+    }
+
+    // Character name
+    ctx.font = "bold 16px 'MS Gothic', monospace";
+    ctx.fillStyle = char.color;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('📱', 0, 0);
-    ctx.restore();
+    ctx.fillText(char.name, centerX, charY + 80);
 
-    // Arrow
-    ctx.font = '40px sans-serif';
+    // --- FC-style message box (silver border) ---
+    const boxW = canvas.width * 0.8;
+    const boxH = 110;
+    const boxX = (canvas.width - boxW) / 2;
+    const boxY = charY + 100;
+
+    // Outer silver border (double line, FC style)
+    ctx.strokeStyle = '#C0C0C0';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = '#808080';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX + 4, boxY + 4, boxW - 8, boxH - 8);
+
+    // Box background
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(boxX + 5, boxY + 5, boxW - 10, boxH - 10);
+
+    // Speech triangle (pointing up to character)
+    ctx.fillStyle = '#0a0a1a';
+    ctx.beginPath();
+    ctx.moveTo(centerX - 10, boxY);
+    ctx.lineTo(centerX + 10, boxY);
+    ctx.lineTo(centerX, boxY - 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#C0C0C0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 12, boxY);
+    ctx.lineTo(centerX, boxY - 14);
+    ctx.lineTo(centerX + 12, boxY);
+    ctx.stroke();
+
+    // Message text (FC-style monospace)
+    // Typewriter-style character reveal
+    const messages = [
+        'スマホを　よこに　してくれ！',
+        '',
+        'よこむきで　たたかうのじゃ！'
+    ];
+
+    ctx.font = "bold 18px 'MS Gothic', 'Courier New', monospace";
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
-    ctx.fillText('↪️', centerX, centerY);
 
-    // Message
-    ctx.font = "bold 24px 'Hiragino Sans', 'MS Gothic', sans-serif";
-    ctx.fillStyle = '#FFD700';
-    ctx.textAlign = 'center';
-    ctx.fillText('スマホを横にしてください', centerX, centerY + 60);
+    const elapsed = Math.floor(Date.now() / 60); // typewriter speed
+    let totalChars = 0;
+    for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        const lineY = boxY + 32 + i * 28;
+        const visibleChars = Math.min(msg.length, Math.max(0, elapsed - totalChars));
+        const displayText = msg.substring(0, visibleChars);
+        ctx.fillText(displayText, centerX, lineY);
+        totalChars += msg.length + 8; // +8 = pause between lines
 
-    ctx.font = "16px 'Hiragino Sans', 'MS Gothic', sans-serif";
-    ctx.fillStyle = '#999';
-    ctx.fillText('画面を横向きにしてプレイしましょう', centerX, centerY + 95);
-
-    ctx.font = "14px 'Hiragino Sans', 'MS Gothic', sans-serif";
-    ctx.fillStyle = '#666';
-    ctx.fillText('離れて目を休めましょう 👀', centerX, centerY + 130);
+        // Blinking cursor at end of current typing line
+        if (visibleChars < msg.length && visibleChars > 0) {
+            const cursorBlink = Math.floor(Date.now() / 300) % 2;
+            if (cursorBlink) {
+                const textW = ctx.measureText(displayText).width;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(centerX + textW / 2 + 2, lineY - 12, 10, 16);
+                ctx.fillStyle = '#FFFFFF';
+            }
+        }
+    }
 }
 
 function draw() {
