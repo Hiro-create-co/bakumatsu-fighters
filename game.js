@@ -543,25 +543,31 @@ function layoutTouchButtons() {
     const sideW = GAME_OFFSET_X; // width of each side panel in internal coords
     const midY = SCREEN_H / 2 + 40; // vertical center, shifted down a bit
 
-    // Button size scales with side panel width
-    const btnScale = Math.max(1.0, Math.min(sideW / 130, 2.0));
-    const btnR = Math.round(30 * btnScale);
-    const bigBtnR = Math.round(35 * btnScale);
-    const smallBtnR = Math.round(27 * btnScale);
-    const startR = Math.round(24 * btnScale);
-    const spread = Math.round(52 * btnScale);
+    // Padding from edge so buttons aren't cut off
+    const edgePad = 10;
+    const usableW = sideW - edgePad * 2; // usable width within each side panel
 
-    // Direction pad - left panel
-    const dpadCX = sideW / 2;
+    // Button size and spread must fit within the usable side panel
+    // spread = distance from center to outer button edge: spread + btnR <= usableW/2
+    const maxSpread = Math.max(30, (usableW / 2) - 20); // leave room for button radius
+    const btnScale = Math.max(0.7, Math.min(maxSpread / 52, 2.0));
+    const btnR = Math.round(28 * btnScale);
+    const bigBtnR = Math.round(32 * btnScale);
+    const smallBtnR = Math.round(24 * btnScale);
+    const startR = Math.round(22 * btnScale);
+    const spread = Math.round(Math.min(48 * btnScale, maxSpread - btnR));
+
+    // Direction pad - left panel (center within usable area)
+    const dpadCX = edgePad + usableW / 2;
     const dpadCY = midY;
     touchButtons[0].x = dpadCX;              touchButtons[0].y = dpadCY - spread; touchButtons[0].r = btnR; // W
     touchButtons[1].x = dpadCX - spread;     touchButtons[1].y = dpadCY;          touchButtons[1].r = btnR; // A
     touchButtons[2].x = dpadCX + spread;     touchButtons[2].y = dpadCY;          touchButtons[2].r = btnR; // D
     touchButtons[3].x = dpadCX;              touchButtons[3].y = dpadCY + spread;  touchButtons[3].r = btnR; // S
 
-    // Attack buttons - right panel (diamond layout)
+    // Attack buttons - right panel (diamond layout, center within usable area)
     const rightPanelStart = GAME_OFFSET_X + SCREEN_W;
-    const atkCX = rightPanelStart + sideW / 2;
+    const atkCX = rightPanelStart + edgePad + usableW / 2;
     const atkCY = midY;
     touchButtons[4].x = atkCX - spread;      touchButtons[4].y = atkCY;                   touchButtons[4].r = bigBtnR;   // J
     touchButtons[5].x = atkCX;               touchButtons[5].y = atkCY - spread;           touchButtons[5].r = btnR;      // K
@@ -597,6 +603,9 @@ function resizeCanvas() {
             canvas.style.width = vw + 'px';
             canvas.style.height = vh + 'px';
             layoutTouchButtons();
+
+            // Auto-scroll to hide mobile browser toolbar
+            setTimeout(function() { window.scrollTo(0, 1); }, 100);
         }
     } else {
         CANVAS_INTERNAL_W = SCREEN_W;
@@ -637,8 +646,33 @@ if (isMobile) {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    // Try to enter fullscreen on first tap to hide browser toolbar
+    let fullscreenRequested = false;
+    function tryFullscreen() {
+        if (fullscreenRequested) return;
+        if (document.fullscreenElement || document.webkitFullscreenElement) return;
+        fullscreenRequested = true;
+        const el = document.documentElement;
+        const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (rfs) {
+            rfs.call(el).catch(function() {});
+        }
+    }
+    // Re-allow fullscreen request if user exits fullscreen
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            fullscreenRequested = false;
+        }
+    });
+    document.addEventListener('webkitfullscreenchange', function() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            fullscreenRequested = false;
+        }
+    });
+
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        tryFullscreen();
         for (const touch of e.changedTouches) {
             const pos = getTouchCanvasPos(touch);
             // Record tap on game screen area (for menu/select tap)
