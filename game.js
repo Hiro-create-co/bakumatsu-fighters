@@ -5911,41 +5911,51 @@ function update() {
 let portraitCharIdx = -1; // Random character for portrait screen
 
 function drawPortraitMessage() {
-    // Full canvas black background
+    // Use SCREEN_W/SCREEN_H as internal coordinate system
+    // Scale canvas to draw at consistent size regardless of viewport
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const scaleX = cw / SCREEN_W;
+    const scaleY = ch / SCREEN_H;
+
+    ctx.save();
+    ctx.scale(scaleX, scaleY);
+
+    // Black background
     ctx.fillStyle = '#0a0800';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
 
     // Pick a random character on first call
     if (portraitCharIdx < 0) {
         portraitCharIdx = Math.floor(Math.random() * CHARACTERS.length);
     }
     const char = CHARACTERS[portraitCharIdx];
-    const centerX = canvas.width / 2;
+    const centerX = SCREEN_W / 2;
 
     // Draw character idle sprite
     const idlePath = char.sprites && char.sprites.idle;
     const idleSprite = idlePath ? spriteCache[idlePath] : null;
     const hasSprite = idleSprite && idleSprite.complete && idleSprite.naturalWidth > 0;
 
-    const charY = canvas.height * 0.32;
+    const charY = 160;
     if (hasSprite) {
-        const spriteScale = 0.5;
+        const spriteScale = 0.45;
         const sw = idleSprite.naturalWidth * spriteScale;
         const sh = idleSprite.naturalHeight * spriteScale;
         ctx.drawImage(idleSprite, centerX - sw / 2, charY - sh / 2, sw, sh);
     }
 
     // Character name
-    ctx.font = "bold 16px 'MS Gothic', monospace";
+    ctx.font = "bold 18px 'MS Gothic', monospace";
     ctx.fillStyle = char.color;
     ctx.textAlign = 'center';
-    ctx.fillText(char.name, centerX, charY + 80);
+    ctx.fillText(char.name, centerX, charY + 90);
 
     // --- FC-style message box (silver border) ---
-    const boxW = canvas.width * 0.8;
-    const boxH = 110;
-    const boxX = (canvas.width - boxW) / 2;
-    const boxY = charY + 100;
+    const boxW = 420;
+    const boxH = 100;
+    const boxX = (SCREEN_W - boxW) / 2;
+    const boxY = charY + 110;
 
     // Outer silver border (double line, FC style)
     ctx.strokeStyle = '#C0C0C0';
@@ -5975,8 +5985,7 @@ function drawPortraitMessage() {
     ctx.lineTo(centerX + 12, boxY);
     ctx.stroke();
 
-    // Message text (FC-style monospace)
-    // Typewriter-style character reveal
+    // Message text (FC-style monospace, typewriter reveal)
     const messages = [
         'スマホを　よこに　してくれ！',
         '',
@@ -5987,27 +5996,17 @@ function drawPortraitMessage() {
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
 
-    const elapsed = Math.floor(Date.now() / 60); // typewriter speed
+    const elapsed = Math.floor(Date.now() / 60);
     let totalChars = 0;
     for (let i = 0; i < messages.length; i++) {
         const msg = messages[i];
-        const lineY = boxY + 32 + i * 28;
+        const lineY = boxY + 30 + i * 26;
         const visibleChars = Math.min(msg.length, Math.max(0, elapsed - totalChars));
-        const displayText = msg.substring(0, visibleChars);
-        ctx.fillText(displayText, centerX, lineY);
-        totalChars += msg.length + 8; // +8 = pause between lines
-
-        // Blinking cursor at end of current typing line
-        if (visibleChars < msg.length && visibleChars > 0) {
-            const cursorBlink = Math.floor(Date.now() / 300) % 2;
-            if (cursorBlink) {
-                const textW = ctx.measureText(displayText).width;
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(centerX + textW / 2 + 2, lineY - 12, 10, 16);
-                ctx.fillStyle = '#FFFFFF';
-            }
-        }
+        ctx.fillText(msg.substring(0, visibleChars), centerX, lineY);
+        totalChars += msg.length + 8;
     }
+
+    ctx.restore();
 }
 
 function draw() {
