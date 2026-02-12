@@ -531,6 +531,8 @@ let canvasScale = 1;
 let canvasOffsetX = 0;
 let canvasOffsetY = 0;
 let PAD_AREA_H = 0; // Height of the virtual pad area below game
+let lastTapX = -1; // Last tap position in game coordinates (for menu tap)
+let lastTapY = -1;
 
 function layoutTouchButtons() {
     if (!isMobile) return;
@@ -562,8 +564,8 @@ function layoutTouchButtons() {
     touchButtons[6].x = atkCX + atkSpread;   touchButtons[6].y = atkCY - atkSpread;         touchButtons[6].r = btnR;    // L
     touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + atkSpread * 0.7;   touchButtons[7].r = smallBtnR; // F
 
-    // Start button - center
-    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = padY + 20; touchButtons[8].r = startR;
+    // Start button - center, positioned between game screen and control buttons
+    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = SCREEN_H + PAD_AREA_H * 0.18; touchButtons[8].r = startR;
 }
 
 function resizeCanvas() {
@@ -628,6 +630,11 @@ if (isMobile) {
         e.preventDefault();
         for (const touch of e.changedTouches) {
             const pos = getTouchCanvasPos(touch);
+            // Record tap on game screen area (for menu/select tap)
+            if (pos.y < SCREEN_H) {
+                lastTapX = pos.x;
+                lastTapY = pos.y;
+            }
             const btn = hitTestButton(pos);
             if (btn) {
                 touchActiveButtons.add(btn.id);
@@ -3639,7 +3646,8 @@ function drawTitleScreen() {
     // PRESS START - classic 90s blinking
     const blink = Math.floor(Date.now() / 500) % 2 === 0; // hard blink, not smooth
     if (blink) {
-        drawRetroText('PRESS ENTER TO START', SCREEN_W / 2, 390, 20, {
+        const startText = isMobile ? 'TAP TO START' : 'PRESS ENTER TO START';
+        drawRetroText(startText, SCREEN_W / 2, 390, 20, {
             fill: '#FFFFFF',
             grad1: '#FFFFFF',
             grad2: '#999999',
@@ -3648,18 +3656,22 @@ function drawTitleScreen() {
     }
 
     // Controls info (bottom, pixelated style)
+    if (!isMobile) {
     drawRetroText('AD:移動 W:ジャンプ S:しゃがみ/ガード J:攻撃 K:必殺技 L:超必殺 F:投げ', SCREEN_W / 2, 455, 12, {
         fill: '#CCBB99',
         grad1: '#CCBB99',
         grad2: '#AA9977',
         outline: '#222222'
     }, { depth: 1, pixelScale: 1.5 });
+    }
+    if (!isMobile) {
     drawRetroText('M: ワザ一覧 (MOVE LIST)  N: システム設定 (SETTINGS)', SCREEN_W / 2, 480, 11, {
         fill: '#CCBB99',
         grad1: '#CCBB99',
         grad2: '#997744',
         outline: '#222222'
     }, { depth: 1, pixelScale: 1.5 });
+    }
 
     // Mute indicator (top-right corner, always visible)
     if (SoundManager.muted) {
@@ -3708,7 +3720,11 @@ function drawDifficultyScreen() {
         drawText(diff.nameEn, bx + boxW / 2, boxY + 65, 12, isSelected ? '#CCC' : '#555', 'center', false);
     }
 
-    drawText('← → : 選択 / ENTER: 決定 / ESC: 戻る', SCREEN_W / 2, 400, 14, '#666', 'center', false);
+    if (isMobile) {
+        drawText('タップで選択 → もう一度タップで決定', SCREEN_W / 2, 400, 16, '#888', 'center', false);
+    } else {
+        drawText('← → : 選択 / ENTER: 決定 / ESC: 戻る', SCREEN_W / 2, 400, 14, '#666', 'center', false);
+    }
 }
 
 function drawSelectScreen() {
@@ -3860,15 +3876,27 @@ function drawSelectScreen() {
     // Player indicator
     drawText('1P SELECT', SCREEN_W / 2, SCREEN_H - 15, 16, '#4A90D9', 'center', true);
 
-    drawText(
-        '← → : 選択 / ENTER: 決定',
-        SCREEN_W / 2,
-        SCREEN_H - 35,
-        12,
-        '#666',
-        'center',
-        false
-    );
+    if (isMobile) {
+        drawText(
+            'タップで選択 → もう一度タップで決定',
+            SCREEN_W / 2,
+            SCREEN_H - 35,
+            14,
+            '#888',
+            'center',
+            false
+        );
+    } else {
+        drawText(
+            '← → : 選択 / ENTER: 決定',
+            SCREEN_W / 2,
+            SCREEN_H - 35,
+            12,
+            '#666',
+            'center',
+            false
+        );
+    }
 }
 
 function drawStatBar(x, y, width, value, color) {
@@ -4981,6 +5009,14 @@ function processPlayerInput() {
 // ============================================================
 function updateTitle() {
     SoundManager.playBGM('title');
+    // Mobile: tap game screen area to start
+    if (isMobile && lastTapX >= 0) {
+        SoundManager.seConfirm();
+        demoTimer = 0;
+        lastTapX = -1; lastTapY = -1;
+        gameState = STATE.DIFFICULTY;
+        return;
+    }
     if (wasPressed('Enter') || wasPressed('Space')) {
         SoundManager.seConfirm();
         demoTimer = 0;
@@ -5069,8 +5105,9 @@ function exitDemoToTitle() {
 }
 
 function updateDemo() {
-    // Any key returns to title
-    if (anyKeyPressed()) {
+    // Any key or tap returns to title
+    if (anyKeyPressed() || (isMobile && lastTapX >= 0)) {
+        lastTapX = -1; lastTapY = -1;
         exitDemoToTitle();
         return;
     }
@@ -5381,6 +5418,31 @@ function updateDifficulty() {
         SoundManager.seCursor();
         selectedDifficulty = (selectedDifficulty + 1) % DIFFICULTY_LEVELS.length;
     }
+    // Mobile: tap on difficulty box to select & confirm
+    if (isMobile && lastTapX >= 0) {
+        const boxW = 160, boxH = 100, gap = 30;
+        const totalW = DIFFICULTY_LEVELS.length * boxW + (DIFFICULTY_LEVELS.length - 1) * gap;
+        const startX = (SCREEN_W - totalW) / 2;
+        const boxY = 220;
+        for (let i = 0; i < DIFFICULTY_LEVELS.length; i++) {
+            const bx = startX + i * (boxW + gap);
+            if (lastTapX >= bx && lastTapX <= bx + boxW && lastTapY >= boxY && lastTapY <= boxY + boxH) {
+                if (selectedDifficulty === i) {
+                    // Already selected → confirm
+                    SoundManager.seConfirm();
+                    gameState = STATE.SELECT;
+                    selectedChar1 = 0;
+                    selectedChar2 = -1;
+                    selectingPlayer = 1;
+                } else {
+                    SoundManager.seCursor();
+                    selectedDifficulty = i;
+                }
+                break;
+            }
+        }
+        lastTapX = -1; lastTapY = -1;
+    }
     if (wasPressed('Enter') || wasPressed('Space')) {
         SoundManager.seConfirm();
         gameState = STATE.SELECT;
@@ -5403,6 +5465,27 @@ function updateSelect() {
     if (wasPressed('ArrowRight') || wasPressed('KeyD')) {
         SoundManager.seCursor();
         selectedChar1 = (selectedChar1 + 1) % CHARACTERS.length;
+    }
+    // Mobile: tap on character card to select & confirm
+    if (isMobile && lastTapX >= 0) {
+        const cardW = 160, cardH = 320;
+        const startX = (SCREEN_W - cardW * 5 - 20 * 4) / 2;
+        const cardY = 90;
+        for (let i = 0; i < CHARACTERS.length; i++) {
+            const cx = startX + i * (cardW + 20);
+            if (lastTapX >= cx && lastTapX <= cx + cardW && lastTapY >= cardY && lastTapY <= cardY + cardH) {
+                if (selectedChar1 === i) {
+                    // Already selected → confirm
+                    SoundManager.seConfirm();
+                    initArcadeMode();
+                } else {
+                    SoundManager.seCursor();
+                    selectedChar1 = i;
+                }
+                break;
+            }
+        }
+        lastTapX = -1; lastTapY = -1;
     }
 
     if (wasPressed('Enter') || wasPressed('Space')) {
@@ -5803,6 +5886,9 @@ function update() {
             updateDemo();
             break;
     }
+    // Clear tap state at end of frame (consumed or not)
+    lastTapX = -1;
+    lastTapY = -1;
 }
 
 function draw() {
