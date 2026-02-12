@@ -34,8 +34,17 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            min-height: 100dvh;
             overflow: hidden;
             font-family: 'MS Gothic', monospace;
+        }
+        @media (max-width: 1024px) and (hover: none) {
+            body {
+                align-items: flex-start;
+                min-height: auto;
+                height: 100vh;
+                height: 100dvh;
+            }
         }
         canvas {
             display: block;
@@ -45,6 +54,11 @@
         }
         #gameCanvas {
             border: 2px solid #333;
+        }
+        @media (max-width: 1024px) and (hover: none) {
+            #gameCanvas {
+                border: none;
+            }
         }
     </style>
 </head>

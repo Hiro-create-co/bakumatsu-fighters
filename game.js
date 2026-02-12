@@ -568,26 +568,19 @@ function layoutTouchButtons() {
     touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = SCREEN_H + PAD_AREA_H * 0.18; touchButtons[8].r = startR;
 }
 
+let mobileIsPortrait = false; // Track orientation for portrait message
+
 function resizeCanvas() {
     if (isMobile) {
-        const isPortrait = window.innerHeight > window.innerWidth;
-        if (isPortrait) {
-            // Portrait: game fills full width, pad fills remaining height
-            canvasScale = window.innerWidth / SCREEN_W;
-            const totalInternalH = window.innerHeight / canvasScale;
-            PAD_AREA_H = Math.max(160, totalInternalH - SCREEN_H);
-        } else {
-            // Landscape: fit both game + pad within screen
-            PAD_AREA_H = 160;
-            const totalH = SCREEN_H + PAD_AREA_H;
-            const scaleX = window.innerWidth / SCREEN_W;
-            const scaleY = window.innerHeight / totalH;
-            canvasScale = Math.min(scaleX, scaleY);
-        }
+        mobileIsPortrait = window.innerHeight > window.innerWidth;
+        // Both orientations: fill width, calculate pad from remaining height
+        canvasScale = window.innerWidth / SCREEN_W;
+        const totalInternalH = window.innerHeight / canvasScale;
+        PAD_AREA_H = Math.max(100, totalInternalH - SCREEN_H);
         canvas.width = SCREEN_W;
         canvas.height = SCREEN_H + PAD_AREA_H;
-        canvas.style.width = (SCREEN_W * canvasScale) + 'px';
-        canvas.style.height = ((SCREEN_H + PAD_AREA_H) * canvasScale) + 'px';
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
         layoutTouchButtons();
     } else {
         const scaleX = window.innerWidth / SCREEN_W;
@@ -5891,7 +5884,51 @@ function update() {
     lastTapY = -1;
 }
 
+function drawPortraitMessage() {
+    // Full canvas black background
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    // Rotate phone icon
+    ctx.save();
+    ctx.translate(centerX, centerY - 80);
+    ctx.rotate(Math.sin(Date.now() * 0.003) * 0.3); // gentle rocking animation
+    ctx.font = '60px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('📱', 0, 0);
+    ctx.restore();
+
+    // Arrow
+    ctx.font = '40px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('↪️', centerX, centerY);
+
+    // Message
+    ctx.font = "bold 24px 'Hiragino Sans', 'MS Gothic', sans-serif";
+    ctx.fillStyle = '#FFD700';
+    ctx.textAlign = 'center';
+    ctx.fillText('スマホを横にしてください', centerX, centerY + 60);
+
+    ctx.font = "16px 'Hiragino Sans', 'MS Gothic', sans-serif";
+    ctx.fillStyle = '#999';
+    ctx.fillText('画面を横向きにしてプレイしましょう', centerX, centerY + 95);
+
+    ctx.font = "14px 'Hiragino Sans', 'MS Gothic', sans-serif";
+    ctx.fillStyle = '#666';
+    ctx.fillText('離れて目を休めましょう 👀', centerX, centerY + 130);
+}
+
 function draw() {
+    // Portrait orientation: show rotate message instead of game
+    if (isMobile && mobileIsPortrait) {
+        drawPortraitMessage();
+        return;
+    }
+
     ctx.save();
 
     // Screen shake
