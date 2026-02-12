@@ -534,42 +534,66 @@ let PAD_AREA_H = 0; // Height of the virtual pad area below game
 
 function layoutTouchButtons() {
     if (!isMobile) return;
-    const padY = SCREEN_H + 15; // Start of pad area
-    PAD_AREA_H = 160;
-    const padMidY = padY + PAD_AREA_H / 2;
+    // Scale factor based on pad area height (baseline 160)
+    const scale = Math.min(PAD_AREA_H / 160, 2.5);
+    const btnR = Math.round(28 * scale);
+    const bigBtnR = Math.round(32 * scale);
+    const smallBtnR = Math.round(26 * scale);
+    const startR = Math.round(22 * scale);
+
+    const padY = SCREEN_H + 10;
+    const padMidY = SCREEN_H + PAD_AREA_H / 2 + 10;
 
     // Direction pad - left side
-    const dpadCX = 100;
+    const dpadCX = 30 + btnR * 2.5;
     const dpadCY = padMidY;
-    const dpadSpread = 48;
-    touchButtons[0].x = dpadCX;              touchButtons[0].y = dpadCY - dpadSpread; // W (up)
-    touchButtons[1].x = dpadCX - dpadSpread; touchButtons[1].y = dpadCY;              // A (left)
-    touchButtons[2].x = dpadCX + dpadSpread; touchButtons[2].y = dpadCY;              // D (right)
-    touchButtons[3].x = dpadCX;              touchButtons[3].y = dpadCY + dpadSpread; // S (down)
+    const dpadSpread = Math.round(48 * scale);
+    touchButtons[0].x = dpadCX;              touchButtons[0].y = dpadCY - dpadSpread; touchButtons[0].r = btnR; // W
+    touchButtons[1].x = dpadCX - dpadSpread; touchButtons[1].y = dpadCY;              touchButtons[1].r = btnR; // A
+    touchButtons[2].x = dpadCX + dpadSpread; touchButtons[2].y = dpadCY;              touchButtons[2].r = btnR; // D
+    touchButtons[3].x = dpadCX;              touchButtons[3].y = dpadCY + dpadSpread; touchButtons[3].r = btnR; // S
 
     // Attack buttons - right side (diamond layout)
-    const atkCX = SCREEN_W - 120;
+    const atkCX = SCREEN_W - 30 - bigBtnR * 2.5;
     const atkCY = padMidY;
-    const atkSpread = 50;
-    touchButtons[4].x = atkCX - atkSpread;   touchButtons[4].y = atkCY;               // J (left, main attack)
-    touchButtons[5].x = atkCX;               touchButtons[5].y = atkCY - atkSpread;    // K (top, special)
-    touchButtons[6].x = atkCX + atkSpread;   touchButtons[6].y = atkCY - atkSpread;    // L (top-right, super)
-    touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + atkSpread * 0.7; // F (bottom, throw)
+    const atkSpread = Math.round(50 * scale);
+    touchButtons[4].x = atkCX - atkSpread;   touchButtons[4].y = atkCY;                    touchButtons[4].r = bigBtnR; // J
+    touchButtons[5].x = atkCX;               touchButtons[5].y = atkCY - atkSpread;         touchButtons[5].r = btnR;    // K
+    touchButtons[6].x = atkCX + atkSpread;   touchButtons[6].y = atkCY - atkSpread;         touchButtons[6].r = btnR;    // L
+    touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + atkSpread * 0.7;   touchButtons[7].r = smallBtnR; // F
 
     // Start button - center
-    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = padY + 20;
+    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = padY + 20; touchButtons[8].r = startR;
 }
 
 function resizeCanvas() {
-    const totalH = isMobile ? SCREEN_H + PAD_AREA_H : SCREEN_H;
     if (isMobile) {
+        const isPortrait = window.innerHeight > window.innerWidth;
+        if (isPortrait) {
+            // Portrait: game fills full width, pad fills remaining height
+            canvasScale = window.innerWidth / SCREEN_W;
+            const totalInternalH = window.innerHeight / canvasScale;
+            PAD_AREA_H = Math.max(160, totalInternalH - SCREEN_H);
+        } else {
+            // Landscape: fit both game + pad within screen
+            PAD_AREA_H = 160;
+            const totalH = SCREEN_H + PAD_AREA_H;
+            const scaleX = window.innerWidth / SCREEN_W;
+            const scaleY = window.innerHeight / totalH;
+            canvasScale = Math.min(scaleX, scaleY);
+        }
+        canvas.width = SCREEN_W;
         canvas.height = SCREEN_H + PAD_AREA_H;
+        canvas.style.width = (SCREEN_W * canvasScale) + 'px';
+        canvas.style.height = ((SCREEN_H + PAD_AREA_H) * canvasScale) + 'px';
+        layoutTouchButtons();
+    } else {
+        const scaleX = window.innerWidth / SCREEN_W;
+        const scaleY = window.innerHeight / SCREEN_H;
+        canvasScale = Math.min(scaleX, scaleY);
+        canvas.style.width = (SCREEN_W * canvasScale) + 'px';
+        canvas.style.height = (SCREEN_H * canvasScale) + 'px';
     }
-    const scaleX = window.innerWidth / SCREEN_W;
-    const scaleY = window.innerHeight / totalH;
-    canvasScale = Math.min(scaleX, scaleY);
-    canvas.style.width = (SCREEN_W * canvasScale) + 'px';
-    canvas.style.height = (totalH * canvasScale) + 'px';
 
     const rect = canvas.getBoundingClientRect();
     canvasOffsetX = rect.left;
