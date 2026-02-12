@@ -162,20 +162,52 @@
     <script>
         document.getElementById('gameCanvas').focus();
 
-        // Portrait overlay: random character
+        // Portrait overlay: random character with unique dialogue
         (function() {
             const chars = [
-                { name: '坂本龍馬', sprite: 'sprites/ryoma/idle.gif', color: '#4A90D9' },
-                { name: '勝海舟', sprite: 'sprites/katsu/idle.gif', color: '#D94A4A' },
-                { name: '吉田松陰', sprite: 'sprites/shoin/idle.gif', color: '#4AD94A' },
-                { name: '徳川慶喜', sprite: 'sprites/yoshinobu/idle.gif', color: '#D9D94A' },
-                { name: '西郷隆盛', sprite: 'sprites/saigo/idle.gif', color: '#D9904A' },
+                {
+                    name: '坂本龍馬',
+                    sprite: 'sprites/ryoma/idle.gif',
+                    color: '#4A90D9',
+                    line1: '画面を横にせんかえ！',
+                    line2: '横向きで勝負じゃき！'
+                },
+                {
+                    name: '勝海舟',
+                    sprite: 'sprites/katsu/idle.gif',
+                    color: '#D94A4A',
+                    line1: '横に構えな、話にならねぇ。',
+                    line2: '江戸っ子は横で戦るんだよ。'
+                },
+                {
+                    name: '吉田松陰',
+                    sprite: 'sprites/shoin/idle.gif',
+                    color: '#4AD94A',
+                    line1: '諸君、画面を横にされよ。',
+                    line2: '志を持って横向きで挑め！'
+                },
+                {
+                    name: '徳川慶喜',
+                    sprite: 'sprites/yoshinobu/idle.gif',
+                    color: '#D9D94A',
+                    line1: '画面を横に致されよ。',
+                    line2: '横向きが武士の礼儀でござる。'
+                },
+                {
+                    name: '西郷隆盛',
+                    sprite: 'sprites/saigo/idle.gif',
+                    color: '#D9904A',
+                    line1: '横にせんか！',
+                    line2: '横向きで戦うのが\n薩摩の流儀でごわす！'
+                },
             ];
             const c = chars[Math.floor(Math.random() * chars.length)];
             document.getElementById('portraitCharImg').src = c.sprite;
             const nameEl = document.getElementById('portraitCharName');
             nameEl.textContent = c.name;
             nameEl.style.color = c.color;
+            document.querySelector('#portraitOverlay .speech-text').textContent =
+                c.line1 + '\n\n' + c.line2;
         })();
     </script>
 </body>
