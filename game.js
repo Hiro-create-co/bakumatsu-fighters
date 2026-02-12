@@ -586,22 +586,31 @@ function resizeCanvas() {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
 
-        // Scale game to fill viewport height, then use full viewport width
-        // This gives us side panels for buttons in landscape
-        canvasScale = vh / SCREEN_H;
-        const gameDisplayW = SCREEN_W * canvasScale;
+        if (mobileIsPortrait) {
+            // Portrait: simple fullscreen canvas for message display
+            canvasScale = 1;
+            canvas.width = vw;
+            canvas.height = vh;
+            canvas.style.width = vw + 'px';
+            canvas.style.height = vh + 'px';
+            CANVAS_INTERNAL_W = vw;
+            GAME_OFFSET_X = 0;
+            PAD_AREA_H = 0;
+        } else {
+            // Landscape: game fills viewport height, side panels for buttons
+            canvasScale = vh / SCREEN_H;
 
-        // Canvas internal width covers full viewport
-        CANVAS_INTERNAL_W = Math.round(vw / canvasScale);
-        GAME_OFFSET_X = Math.round((CANVAS_INTERNAL_W - SCREEN_W) / 2);
+            // Canvas internal width covers full viewport
+            CANVAS_INTERNAL_W = Math.round(vw / canvasScale);
+            GAME_OFFSET_X = Math.round((CANVAS_INTERNAL_W - SCREEN_W) / 2);
+            PAD_AREA_H = 0;
 
-        PAD_AREA_H = 0; // No bottom pad needed - buttons go on sides
-
-        canvas.width = CANVAS_INTERNAL_W;
-        canvas.height = SCREEN_H;
-        canvas.style.width = vw + 'px';
-        canvas.style.height = vh + 'px';
-        layoutTouchButtons();
+            canvas.width = CANVAS_INTERNAL_W;
+            canvas.height = SCREEN_H;
+            canvas.style.width = vw + 'px';
+            canvas.style.height = vh + 'px';
+            layoutTouchButtons();
+        }
     } else {
         CANVAS_INTERNAL_W = SCREEN_W;
         GAME_OFFSET_X = 0;
