@@ -531,40 +531,45 @@ let canvasScale = 1;
 let canvasOffsetX = 0;
 let canvasOffsetY = 0;
 let PAD_AREA_H = 0; // Height of the virtual pad area below game
+let CANVAS_INTERNAL_W = SCREEN_W; // May be wider than SCREEN_W on mobile landscape
+let GAME_OFFSET_X = 0; // X offset to center game screen within wider canvas
 let lastTapX = -1; // Last tap position in game coordinates (for menu tap)
 let lastTapY = -1;
 
 function layoutTouchButtons() {
     if (!isMobile) return;
-    // Scale factor based on pad area height (baseline 160, min 1.0)
-    const scale = Math.max(1.0, Math.min(PAD_AREA_H / 160, 2.5));
-    const btnR = Math.round(28 * scale);
-    const bigBtnR = Math.round(32 * scale);
-    const smallBtnR = Math.round(26 * scale);
-    const startR = Math.round(22 * scale);
 
-    const padMidY = SCREEN_H + PAD_AREA_H / 2;
+    // Landscape: buttons in left/right side panels alongside game
+    const sideW = GAME_OFFSET_X; // width of each side panel in internal coords
+    const midY = SCREEN_H / 2 + 40; // vertical center, shifted down a bit
 
-    // Direction pad - left side
-    const dpadCX = 30 + btnR * 2.5;
-    const dpadCY = padMidY;
-    const dpadSpread = Math.round(48 * scale);
-    touchButtons[0].x = dpadCX;              touchButtons[0].y = dpadCY - dpadSpread; touchButtons[0].r = btnR; // W
-    touchButtons[1].x = dpadCX - dpadSpread; touchButtons[1].y = dpadCY;              touchButtons[1].r = btnR; // A
-    touchButtons[2].x = dpadCX + dpadSpread; touchButtons[2].y = dpadCY;              touchButtons[2].r = btnR; // D
-    touchButtons[3].x = dpadCX;              touchButtons[3].y = dpadCY + dpadSpread; touchButtons[3].r = btnR; // S
+    // Button size scales with side panel width
+    const btnScale = Math.max(1.0, Math.min(sideW / 130, 2.0));
+    const btnR = Math.round(30 * btnScale);
+    const bigBtnR = Math.round(35 * btnScale);
+    const smallBtnR = Math.round(27 * btnScale);
+    const startR = Math.round(24 * btnScale);
+    const spread = Math.round(52 * btnScale);
 
-    // Attack buttons - right side (diamond layout)
-    const atkCX = SCREEN_W - 30 - bigBtnR * 2.5;
-    const atkCY = padMidY;
-    const atkSpread = Math.round(50 * scale);
-    touchButtons[4].x = atkCX - atkSpread;   touchButtons[4].y = atkCY;                    touchButtons[4].r = bigBtnR; // J
-    touchButtons[5].x = atkCX;               touchButtons[5].y = atkCY - atkSpread;         touchButtons[5].r = btnR;    // K
-    touchButtons[6].x = atkCX + atkSpread;   touchButtons[6].y = atkCY - atkSpread;         touchButtons[6].r = btnR;    // L
-    touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + atkSpread * 0.7;   touchButtons[7].r = smallBtnR; // F
+    // Direction pad - left panel
+    const dpadCX = sideW / 2;
+    const dpadCY = midY;
+    touchButtons[0].x = dpadCX;              touchButtons[0].y = dpadCY - spread; touchButtons[0].r = btnR; // W
+    touchButtons[1].x = dpadCX - spread;     touchButtons[1].y = dpadCY;          touchButtons[1].r = btnR; // A
+    touchButtons[2].x = dpadCX + spread;     touchButtons[2].y = dpadCY;          touchButtons[2].r = btnR; // D
+    touchButtons[3].x = dpadCX;              touchButtons[3].y = dpadCY + spread;  touchButtons[3].r = btnR; // S
 
-    // Start button - center top of pad area
-    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = SCREEN_H + Math.min(30, PAD_AREA_H * 0.15); touchButtons[8].r = startR;
+    // Attack buttons - right panel (diamond layout)
+    const rightPanelStart = GAME_OFFSET_X + SCREEN_W;
+    const atkCX = rightPanelStart + sideW / 2;
+    const atkCY = midY;
+    touchButtons[4].x = atkCX - spread;      touchButtons[4].y = atkCY;                   touchButtons[4].r = bigBtnR;   // J
+    touchButtons[5].x = atkCX;               touchButtons[5].y = atkCY - spread;           touchButtons[5].r = btnR;      // K
+    touchButtons[6].x = atkCX + spread;      touchButtons[6].y = atkCY - spread;           touchButtons[6].r = btnR;      // L
+    touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + spread * 0.7;     touchButtons[7].r = smallBtnR; // F
+
+    // Start button - top center
+    touchButtons[8].x = CANVAS_INTERNAL_W / 2; touchButtons[8].y = 20; touchButtons[8].r = startR;
 }
 
 let mobileIsPortrait = false; // Track orientation for portrait message
@@ -576,34 +581,25 @@ function resizeCanvas() {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
 
-        // Determine how much height to give the game vs pad
-        // Game needs at least SCREEN_H pixels (scaled), pad needs minimum space
-        const minPadInternalH = 120; // minimum pad height in internal coords
+        // Scale game to fill viewport height, then use full viewport width
+        // This gives us side panels for buttons in landscape
+        canvasScale = vh / SCREEN_H;
+        const gameDisplayW = SCREEN_W * canvasScale;
 
-        // Try width-based scale first
-        let scale = vw / SCREEN_W;
-        let gameDisplayH = SCREEN_H * scale;
-        let padDisplayH = vh - gameDisplayH;
+        // Canvas internal width covers full viewport
+        CANVAS_INTERNAL_W = Math.round(vw / canvasScale);
+        GAME_OFFSET_X = Math.round((CANVAS_INTERNAL_W - SCREEN_W) / 2);
 
-        if (padDisplayH < minPadInternalH * scale) {
-            // Not enough room for pad - scale down game to fit both
-            // game + pad total internal height should fit in vh
-            const totalInternalH = SCREEN_H + minPadInternalH;
-            scale = Math.min(vw / SCREEN_W, vh / totalInternalH);
-            PAD_AREA_H = minPadInternalH;
-        } else {
-            // Enough room - pad gets remaining space (in internal coords)
-            PAD_AREA_H = padDisplayH / scale;
-        }
+        PAD_AREA_H = 0; // No bottom pad needed - buttons go on sides
 
-        canvasScale = scale;
-        const totalInternalH = SCREEN_H + PAD_AREA_H;
-        canvas.width = SCREEN_W;
-        canvas.height = Math.round(totalInternalH);
-        canvas.style.width = Math.round(SCREEN_W * scale) + 'px';
-        canvas.style.height = Math.round(totalInternalH * scale) + 'px';
+        canvas.width = CANVAS_INTERNAL_W;
+        canvas.height = SCREEN_H;
+        canvas.style.width = vw + 'px';
+        canvas.style.height = vh + 'px';
         layoutTouchButtons();
     } else {
+        CANVAS_INTERNAL_W = SCREEN_W;
+        GAME_OFFSET_X = 0;
         const scaleX = window.innerWidth / SCREEN_W;
         const scaleY = window.innerHeight / SCREEN_H;
         canvasScale = Math.min(scaleX, scaleY);
@@ -645,8 +641,10 @@ if (isMobile) {
         for (const touch of e.changedTouches) {
             const pos = getTouchCanvasPos(touch);
             // Record tap on game screen area (for menu/select tap)
-            if (pos.y < SCREEN_H) {
-                lastTapX = pos.x;
+            // Convert canvas coords to game coords by subtracting GAME_OFFSET_X
+            const gameX = pos.x - GAME_OFFSET_X;
+            if (pos.y < SCREEN_H && gameX >= 0 && gameX <= SCREEN_W) {
+                lastTapX = gameX;
                 lastTapY = pos.y;
             }
             const btn = hitTestButton(pos);
@@ -719,16 +717,7 @@ if (isMobile) {
 function drawTouchControls() {
     if (!isMobile) return;
 
-    // Pad background
-    ctx.fillStyle = 'rgba(10, 5, 0, 0.95)';
-    ctx.fillRect(0, SCREEN_H, SCREEN_W, PAD_AREA_H);
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, SCREEN_H);
-    ctx.lineTo(SCREEN_W, SCREEN_H);
-    ctx.stroke();
-
+    // Buttons are drawn in canvas coordinate space (not game-offset space)
     for (const btn of touchButtons) {
         const isPressed = touchActiveButtons.has(btn.id);
         const alpha = isPressed ? 0.8 : 0.35;
@@ -5950,7 +5939,18 @@ function draw() {
         return;
     }
 
+    // Clear full canvas (including side panels) on mobile
+    if (isMobile && GAME_OFFSET_X > 0) {
+        ctx.fillStyle = '#0a0500';
+        ctx.fillRect(0, 0, CANVAS_INTERNAL_W, SCREEN_H);
+    }
+
     ctx.save();
+
+    // Offset game drawing for mobile side panels
+    if (isMobile && GAME_OFFSET_X > 0) {
+        ctx.translate(GAME_OFFSET_X, 0);
+    }
 
     // Screen shake
     if (screenShake > 0.5) {
@@ -6034,7 +6034,7 @@ function draw() {
         ctx.textAlign = 'right';
         ctx.textBaseline = 'top';
         ctx.fillStyle = '#FF4444';
-        ctx.fillText('🔇 MUTE', SCREEN_W - 10, 8);
+        ctx.fillText('🔇 MUTE', GAME_OFFSET_X + SCREEN_W - 10, 8);
         ctx.globalAlpha = 1;
         ctx.restore();
     }
