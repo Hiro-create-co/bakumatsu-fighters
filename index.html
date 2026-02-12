@@ -29,7 +29,7 @@
             box-sizing: border-box;
         }
         body {
-            background: #000;
+            background: #0a0800;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -37,17 +37,6 @@
             min-height: 100dvh;
             overflow: hidden;
             font-family: 'MS Gothic', monospace;
-        }
-        @media (max-width: 1024px) and (hover: none) {
-            body {
-                align-items: flex-start;
-                justify-content: flex-start;
-                min-height: 100vh;
-                min-height: 100dvh;
-                height: 100vh;
-                height: 100dvh;
-                overflow: hidden;
-            }
         }
         canvas {
             display: block;
@@ -58,16 +47,136 @@
         #gameCanvas {
             border: 2px solid #333;
         }
+
+        /* ===== Portrait overlay (HTML-based, no canvas issues) ===== */
+        #portraitOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0800;
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        #portraitOverlay .char-sprite {
+            width: 120px;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            margin-bottom: 10px;
+        }
+        #portraitOverlay .char-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        #portraitOverlay .speech-box {
+            border: 3px solid #C0C0C0;
+            background: #0a0a1a;
+            padding: 20px 30px;
+            max-width: 340px;
+            width: 90%;
+            position: relative;
+            margin-top: 10px;
+        }
+        #portraitOverlay .speech-box::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 12px solid #C0C0C0;
+        }
+        #portraitOverlay .speech-box::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 9px solid #0a0a1a;
+        }
+        #portraitOverlay .speech-box .inner-border {
+            border: 1px solid #808080;
+            padding: 16px 20px;
+        }
+        #portraitOverlay .speech-text {
+            font-family: 'MS Gothic', 'Courier New', monospace;
+            font-size: 17px;
+            font-weight: bold;
+            color: #FFF;
+            line-height: 2;
+            white-space: pre-line;
+        }
+        #portraitOverlay .sub-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        /* Mobile: hide border, fullscreen canvas */
         @media (max-width: 1024px) and (hover: none) {
+            body {
+                align-items: flex-start;
+                justify-content: flex-start;
+            }
             #gameCanvas {
                 border: none;
+            }
+        }
+
+        /* Portrait: show overlay, hide canvas */
+        @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+            #portraitOverlay {
+                display: flex !important;
+            }
+            #gameCanvas {
+                display: none !important;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Portrait orientation overlay -->
+    <div id="portraitOverlay">
+        <img class="char-sprite" id="portraitCharImg" src="" alt="">
+        <div class="char-name" id="portraitCharName"></div>
+        <div class="speech-box">
+            <div class="inner-border">
+                <div class="speech-text">スマホを　よこに　してくれ！&#10;&#10;よこむきで　たたかうのじゃ！</div>
+            </div>
+        </div>
+        <div class="sub-text">離れて目を休めましょう</div>
+    </div>
+
     <canvas id="gameCanvas" width="960" height="540" tabindex="0"></canvas>
     <script src="game.js"></script>
-    <script>document.getElementById('gameCanvas').focus();</script>
+    <script>
+        document.getElementById('gameCanvas').focus();
+
+        // Portrait overlay: random character
+        (function() {
+            const chars = [
+                { name: '坂本龍馬', sprite: 'sprites/ryoma/idle.gif', color: '#4A90D9' },
+                { name: '勝海舟', sprite: 'sprites/katsu/idle.gif', color: '#D94A4A' },
+                { name: '吉田松陰', sprite: 'sprites/shoin/idle.gif', color: '#4AD94A' },
+                { name: '徳川慶喜', sprite: 'sprites/yoshinobu/idle.gif', color: '#D9D94A' },
+                { name: '西郷隆盛', sprite: 'sprites/saigo/idle.gif', color: '#D9904A' },
+            ];
+            const c = chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById('portraitCharImg').src = c.sprite;
+            const nameEl = document.getElementById('portraitCharName');
+            nameEl.textContent = c.name;
+            nameEl.style.color = c.color;
+        })();
+    </script>
 </body>
 </html>

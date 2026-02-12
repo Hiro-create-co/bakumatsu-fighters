@@ -576,27 +576,14 @@ let mobileIsPortrait = false; // Track orientation for portrait message
 
 function resizeCanvas() {
     if (isMobile) {
-        const wasPortrait = mobileIsPortrait;
         mobileIsPortrait = window.innerHeight > window.innerWidth;
-        // Re-randomize portrait character when entering portrait
-        if (mobileIsPortrait && !wasPortrait) {
-            portraitCharIdx = Math.floor(Math.random() * CHARACTERS.length);
-        }
 
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
+        // Portrait is handled by CSS overlay (canvas is display:none)
+        // Only set up canvas for landscape
+        if (!mobileIsPortrait) {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
 
-        if (mobileIsPortrait) {
-            // Portrait: simple fullscreen canvas for message display
-            canvasScale = 1;
-            canvas.width = vw;
-            canvas.height = vh;
-            canvas.style.width = vw + 'px';
-            canvas.style.height = vh + 'px';
-            CANVAS_INTERNAL_W = vw;
-            GAME_OFFSET_X = 0;
-            PAD_AREA_H = 0;
-        } else {
             // Landscape: game fills viewport height, side panels for buttons
             canvasScale = vh / SCREEN_H;
 
@@ -5908,113 +5895,8 @@ function update() {
     lastTapY = -1;
 }
 
-let portraitCharIdx = -1; // Random character for portrait screen
-
-function drawPortraitMessage() {
-    // Use SCREEN_W/SCREEN_H as internal coordinate system
-    // Scale canvas to draw at consistent size regardless of viewport
-    const cw = canvas.width;
-    const ch = canvas.height;
-    const scaleX = cw / SCREEN_W;
-    const scaleY = ch / SCREEN_H;
-
-    ctx.save();
-    ctx.scale(scaleX, scaleY);
-
-    // Black background
-    ctx.fillStyle = '#0a0800';
-    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
-
-    // Pick a random character on first call
-    if (portraitCharIdx < 0) {
-        portraitCharIdx = Math.floor(Math.random() * CHARACTERS.length);
-    }
-    const char = CHARACTERS[portraitCharIdx];
-    const centerX = SCREEN_W / 2;
-
-    // Draw character idle sprite
-    const idlePath = char.sprites && char.sprites.idle;
-    const idleSprite = idlePath ? spriteCache[idlePath] : null;
-    const hasSprite = idleSprite && idleSprite.complete && idleSprite.naturalWidth > 0;
-
-    const charY = 160;
-    if (hasSprite) {
-        const spriteScale = 0.45;
-        const sw = idleSprite.naturalWidth * spriteScale;
-        const sh = idleSprite.naturalHeight * spriteScale;
-        ctx.drawImage(idleSprite, centerX - sw / 2, charY - sh / 2, sw, sh);
-    }
-
-    // Character name
-    ctx.font = "bold 18px 'MS Gothic', monospace";
-    ctx.fillStyle = char.color;
-    ctx.textAlign = 'center';
-    ctx.fillText(char.name, centerX, charY + 90);
-
-    // --- FC-style message box (silver border) ---
-    const boxW = 420;
-    const boxH = 100;
-    const boxX = (SCREEN_W - boxW) / 2;
-    const boxY = charY + 110;
-
-    // Outer silver border (double line, FC style)
-    ctx.strokeStyle = '#C0C0C0';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(boxX, boxY, boxW, boxH);
-    ctx.strokeStyle = '#808080';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(boxX + 4, boxY + 4, boxW - 8, boxH - 8);
-
-    // Box background
-    ctx.fillStyle = '#0a0a1a';
-    ctx.fillRect(boxX + 5, boxY + 5, boxW - 10, boxH - 10);
-
-    // Speech triangle (pointing up to character)
-    ctx.fillStyle = '#0a0a1a';
-    ctx.beginPath();
-    ctx.moveTo(centerX - 10, boxY);
-    ctx.lineTo(centerX + 10, boxY);
-    ctx.lineTo(centerX, boxY - 12);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#C0C0C0';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 12, boxY);
-    ctx.lineTo(centerX, boxY - 14);
-    ctx.lineTo(centerX + 12, boxY);
-    ctx.stroke();
-
-    // Message text (FC-style monospace, typewriter reveal)
-    const messages = [
-        'スマホを　よこに　してくれ！',
-        '',
-        'よこむきで　たたかうのじゃ！'
-    ];
-
-    ctx.font = "bold 18px 'MS Gothic', 'Courier New', monospace";
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textAlign = 'center';
-
-    const elapsed = Math.floor(Date.now() / 60);
-    let totalChars = 0;
-    for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i];
-        const lineY = boxY + 30 + i * 26;
-        const visibleChars = Math.min(msg.length, Math.max(0, elapsed - totalChars));
-        ctx.fillText(msg.substring(0, visibleChars), centerX, lineY);
-        totalChars += msg.length + 8;
-    }
-
-    ctx.restore();
-}
-
 function draw() {
-    // Portrait orientation: show rotate message instead of game
-    if (isMobile && mobileIsPortrait) {
-        drawPortraitMessage();
-        return;
-    }
+    // Portrait is handled by HTML overlay (canvas hidden via CSS)
 
     // Clear full canvas (including side panels) on mobile
     if (isMobile && GAME_OFFSET_X > 0) {
