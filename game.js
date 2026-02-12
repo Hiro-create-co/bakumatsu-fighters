@@ -536,15 +536,14 @@ let lastTapY = -1;
 
 function layoutTouchButtons() {
     if (!isMobile) return;
-    // Scale factor based on pad area height (baseline 160)
-    const scale = Math.min(PAD_AREA_H / 160, 2.5);
+    // Scale factor based on pad area height (baseline 160, min 1.0)
+    const scale = Math.max(1.0, Math.min(PAD_AREA_H / 160, 2.5));
     const btnR = Math.round(28 * scale);
     const bigBtnR = Math.round(32 * scale);
     const smallBtnR = Math.round(26 * scale);
     const startR = Math.round(22 * scale);
 
-    const padY = SCREEN_H + 10;
-    const padMidY = SCREEN_H + PAD_AREA_H / 2 + 10;
+    const padMidY = SCREEN_H + PAD_AREA_H / 2;
 
     // Direction pad - left side
     const dpadCX = 30 + btnR * 2.5;
@@ -564,8 +563,8 @@ function layoutTouchButtons() {
     touchButtons[6].x = atkCX + atkSpread;   touchButtons[6].y = atkCY - atkSpread;         touchButtons[6].r = btnR;    // L
     touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + atkSpread * 0.7;   touchButtons[7].r = smallBtnR; // F
 
-    // Start button - center, positioned between game screen and control buttons
-    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = SCREEN_H + PAD_AREA_H * 0.18; touchButtons[8].r = startR;
+    // Start button - center top of pad area
+    touchButtons[8].x = SCREEN_W / 2;       touchButtons[8].y = SCREEN_H + Math.min(30, PAD_AREA_H * 0.15); touchButtons[8].r = startR;
 }
 
 let mobileIsPortrait = false; // Track orientation for portrait message
@@ -573,14 +572,36 @@ let mobileIsPortrait = false; // Track orientation for portrait message
 function resizeCanvas() {
     if (isMobile) {
         mobileIsPortrait = window.innerHeight > window.innerWidth;
-        // Both orientations: fill width, calculate pad from remaining height
-        canvasScale = window.innerWidth / SCREEN_W;
-        const totalInternalH = window.innerHeight / canvasScale;
-        PAD_AREA_H = Math.max(100, totalInternalH - SCREEN_H);
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // Determine how much height to give the game vs pad
+        // Game needs at least SCREEN_H pixels (scaled), pad needs minimum space
+        const minPadInternalH = 120; // minimum pad height in internal coords
+
+        // Try width-based scale first
+        let scale = vw / SCREEN_W;
+        let gameDisplayH = SCREEN_H * scale;
+        let padDisplayH = vh - gameDisplayH;
+
+        if (padDisplayH < minPadInternalH * scale) {
+            // Not enough room for pad - scale down game to fit both
+            // game + pad total internal height should fit in vh
+            const totalInternalH = SCREEN_H + minPadInternalH;
+            scale = Math.min(vw / SCREEN_W, vh / totalInternalH);
+            PAD_AREA_H = minPadInternalH;
+        } else {
+            // Enough room - pad gets remaining space (in internal coords)
+            PAD_AREA_H = padDisplayH / scale;
+        }
+
+        canvasScale = scale;
+        const totalInternalH = SCREEN_H + PAD_AREA_H;
         canvas.width = SCREEN_W;
-        canvas.height = SCREEN_H + PAD_AREA_H;
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
+        canvas.height = Math.round(totalInternalH);
+        canvas.style.width = Math.round(SCREEN_W * scale) + 'px';
+        canvas.style.height = Math.round(totalInternalH * scale) + 'px';
         layoutTouchButtons();
     } else {
         const scaleX = window.innerWidth / SCREEN_W;
