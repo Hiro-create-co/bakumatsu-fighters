@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;background:#000;">
+<canvas id="c" width="1200" height="630"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// Background
+const grad = ctx.createLinearGradient(0, 0, 0, 630);
+grad.addColorStop(0, '#000000');
+grad.addColorStop(0.35, '#080200');
+grad.addColorStop(0.65, '#100400');
+grad.addColorStop(1, '#000000');
+ctx.fillStyle = grad;
+ctx.fillRect(0, 0, 1200, 630);
+
+// Glow
+const rg = ctx.createRadialGradient(600, 250, 30, 600, 260, 400);
+rg.addColorStop(0, 'rgba(200, 80, 0, 0.25)');
+rg.addColorStop(0.4, 'rgba(120, 30, 0, 0.12)');
+rg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = rg;
+ctx.fillRect(0, 0, 1200, 630);
+
+// Title
+ctx.font = '900 120px serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+
+// Shadow
+for (let d = 6; d > 0; d--) {
+    ctx.fillStyle = '#301000';
+    ctx.fillText('\u5e55\u672b\u95d8\u4f1d', 600 + d, 220 + d);
+}
+ctx.strokeStyle = '#000';
+ctx.lineWidth = 4;
+ctx.lineJoin = 'round';
+ctx.strokeText('\u5e55\u672b\u95d8\u4f1d', 600, 220);
+
+const tg = ctx.createLinearGradient(0, 160, 0, 280);
+tg.addColorStop(0, '#FFE060');
+tg.addColorStop(0.5, '#E8A000');
+tg.addColorStop(1, '#8B4500');
+ctx.fillStyle = tg;
+ctx.fillText('\u5e55\u672b\u95d8\u4f1d', 600, 220);
+
+// Subtitle
+ctx.font = '900 48px Impact, Arial Black, sans-serif';
+ctx.strokeStyle = '#000';
+ctx.lineWidth = 3;
+ctx.strokeText('BAKUMATSU FIGHTERS', 600, 340);
+const sg = ctx.createLinearGradient(0, 316, 0, 364);
+sg.addColorStop(0, '#FF8844');
+sg.addColorStop(1, '#881100');
+ctx.fillStyle = sg;
+ctx.fillText('BAKUMATSU FIGHTERS', 600, 340);
+
+// Line
+ctx.fillStyle = '#FF4400';
+for (let x = 300; x < 900; x += 4) {
+    const dist = Math.abs(x - 600) / 300;
+    ctx.globalAlpha = 1 - dist;
+    ctx.fillRect(x, 380, 3, 2);
+}
+ctx.globalAlpha = 1;
+
+// Tagline
+ctx.font = '28px sans-serif';
+ctx.fillStyle = '#CCBB99';
+ctx.fillText('\u30d6\u30e9\u30a6\u30b6\u3067\u904a\u3079\u308b\u5e55\u672b\u683c\u95d8\u30b2\u30fc\u30e0', 600, 460);
+
+ctx.font = '22px sans-serif';
+ctx.fillStyle = '#887755';
+ctx.fillText('\u30ad\u30fc\u30dc\u30fc\u30c9\u64cd\u4f5c \u30fb 5\u4eba\u306e\u5fd7\u58eb \u30fb \u30a2\u30fc\u30b1\u30fc\u30c9\u30e2\u30fc\u30c9', 600, 510);
+
+// Save
+c.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ogp.png';
+    a.click();
+    document.title = 'Done! Check downloads.';
+}, 'image/png');
+</script>
+</body>
+</html>
