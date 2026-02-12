@@ -541,21 +541,21 @@ function layoutTouchButtons() {
 
     // Landscape: buttons in left/right side panels alongside game
     const sideW = GAME_OFFSET_X; // width of each side panel in internal coords
-    const midY = SCREEN_H / 2 + 40; // vertical center, shifted down a bit
+    const canvasH = canvas.height || SCREEN_H;
+    const midY = canvasH / 2 + 20; // vertical center of canvas, shifted down slightly
 
     // Padding from edge so buttons aren't cut off
-    const edgePad = 10;
+    const edgePad = 8;
     const usableW = sideW - edgePad * 2; // usable width within each side panel
 
-    // Button size and spread must fit within the usable side panel
-    // spread = distance from center to outer button edge: spread + btnR <= usableW/2
-    const maxSpread = Math.max(30, (usableW / 2) - 20); // leave room for button radius
-    const btnScale = Math.max(0.7, Math.min(maxSpread / 52, 2.0));
-    const btnR = Math.round(28 * btnScale);
-    const bigBtnR = Math.round(32 * btnScale);
-    const smallBtnR = Math.round(24 * btnScale);
-    const startR = Math.round(22 * btnScale);
-    const spread = Math.round(Math.min(48 * btnScale, maxSpread - btnR));
+    // Scale buttons to fit the side panel width
+    // Target: spread (center to edge button) + btnR must fit in usableW/2
+    const btnScale = Math.max(0.8, Math.min(usableW / 130, 1.8));
+    const btnR = Math.round(30 * btnScale);
+    const bigBtnR = Math.round(34 * btnScale);
+    const smallBtnR = Math.round(26 * btnScale);
+    const startR = Math.round(24 * btnScale);
+    const spread = Math.round(50 * btnScale);
 
     // Direction pad - left panel (center within usable area)
     const dpadCX = edgePad + usableW / 2;
@@ -575,7 +575,7 @@ function layoutTouchButtons() {
     touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + spread * 0.7;     touchButtons[7].r = smallBtnR; // F
 
     // Start button - top center
-    touchButtons[8].x = CANVAS_INTERNAL_W / 2; touchButtons[8].y = 20; touchButtons[8].r = startR;
+    touchButtons[8].x = CANVAS_INTERNAL_W / 2; touchButtons[8].y = 22; touchButtons[8].r = startR;
 }
 
 let mobileIsPortrait = false; // Track orientation for portrait message
@@ -590,22 +590,38 @@ function resizeCanvas() {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
 
-            // Landscape: game fills viewport height, side panels for buttons
-            canvasScale = vh / SCREEN_H;
+            // Landscape: need side panels for buttons (min ~150 internal px each side)
+            // Calculate scale that fills height
+            const scaleByHeight = vh / SCREEN_H;
+            // Check if side panels would be wide enough at this scale
+            const internalWAtHeight = Math.round(vw / scaleByHeight);
+            const sidePanelAtHeight = Math.round((internalWAtHeight - SCREEN_W) / 2);
+            const MIN_SIDE_W = 150; // minimum internal px for each side panel
+
+            if (sidePanelAtHeight >= MIN_SIDE_W) {
+                // Side panels are wide enough, use full height
+                canvasScale = scaleByHeight;
+            } else {
+                // Side panels too narrow — shrink game to make room
+                // Need: (vw / scale - SCREEN_W) / 2 >= MIN_SIDE_W
+                // => vw / scale >= SCREEN_W + 2 * MIN_SIDE_W
+                // => scale <= vw / (SCREEN_W + 2 * MIN_SIDE_W)
+                canvasScale = Math.min(scaleByHeight, vw / (SCREEN_W + 2 * MIN_SIDE_W));
+            }
 
             // Canvas internal width covers full viewport
             CANVAS_INTERNAL_W = Math.round(vw / canvasScale);
             GAME_OFFSET_X = Math.round((CANVAS_INTERNAL_W - SCREEN_W) / 2);
             PAD_AREA_H = 0;
 
+            // Canvas internal height covers full viewport (may be taller than SCREEN_H)
+            const CANVAS_INTERNAL_H = Math.round(vh / canvasScale);
+
             canvas.width = CANVAS_INTERNAL_W;
-            canvas.height = SCREEN_H;
+            canvas.height = CANVAS_INTERNAL_H;
             canvas.style.width = vw + 'px';
             canvas.style.height = vh + 'px';
             layoutTouchButtons();
-
-            // Auto-scroll to hide mobile browser toolbar
-            setTimeout(function() { window.scrollTo(0, 1); }, 100);
         }
     } else {
         CANVAS_INTERNAL_W = SCREEN_W;
@@ -646,41 +662,18 @@ if (isMobile) {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Try to enter fullscreen on first tap to hide browser toolbar
-    let fullscreenRequested = false;
-    function tryFullscreen() {
-        if (fullscreenRequested) return;
-        if (document.fullscreenElement || document.webkitFullscreenElement) return;
-        fullscreenRequested = true;
-        const el = document.documentElement;
-        const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-        if (rfs) {
-            rfs.call(el).catch(function() {});
-        }
-    }
-    // Re-allow fullscreen request if user exits fullscreen
-    document.addEventListener('fullscreenchange', function() {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-            fullscreenRequested = false;
-        }
-    });
-    document.addEventListener('webkitfullscreenchange', function() {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-            fullscreenRequested = false;
-        }
-    });
-
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        tryFullscreen();
         for (const touch of e.changedTouches) {
             const pos = getTouchCanvasPos(touch);
             // Record tap on game screen area (for menu/select tap)
-            // Convert canvas coords to game coords by subtracting GAME_OFFSET_X
+            // Convert canvas coords to game coords by subtracting offsets
+            const gameOffsetY = Math.max(0, Math.round((canvas.height - SCREEN_H) / 2));
             const gameX = pos.x - GAME_OFFSET_X;
-            if (pos.y < SCREEN_H && gameX >= 0 && gameX <= SCREEN_W) {
+            const gameY = pos.y - gameOffsetY;
+            if (gameY >= 0 && gameY < SCREEN_H && gameX >= 0 && gameX <= SCREEN_W) {
                 lastTapX = gameX;
-                lastTapY = pos.y;
+                lastTapY = gameY;
             }
             const btn = hitTestButton(pos);
             if (btn) {
@@ -5932,17 +5925,18 @@ function update() {
 function draw() {
     // Portrait is handled by HTML overlay (canvas hidden via CSS)
 
-    // Clear full canvas (including side panels) on mobile
+    // Clear full canvas (including side panels and any extra height) on mobile
     if (isMobile && GAME_OFFSET_X > 0) {
         ctx.fillStyle = '#0a0500';
-        ctx.fillRect(0, 0, CANVAS_INTERNAL_W, SCREEN_H);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     ctx.save();
 
-    // Offset game drawing for mobile side panels
+    // Offset game drawing for mobile side panels (and vertical centering if canvas is taller)
     if (isMobile && GAME_OFFSET_X > 0) {
-        ctx.translate(GAME_OFFSET_X, 0);
+        const gameOffsetY = Math.max(0, Math.round((canvas.height - SCREEN_H) / 2));
+        ctx.translate(GAME_OFFSET_X, gameOffsetY);
     }
 
     // Screen shake

@@ -136,18 +136,6 @@
             }
         }
 
-        /* Mobile landscape: allow scroll to hide toolbar */
-        @media (orientation: landscape) and (hover: none) and (pointer: coarse) {
-            html {
-                height: calc(100vh + 1px);
-            }
-            body {
-                overflow: auto;
-                min-height: calc(100vh + 1px);
-                min-height: calc(100dvh + 1px);
-            }
-        }
-
         /* Portrait: show overlay, hide canvas */
         @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
             #portraitOverlay {
