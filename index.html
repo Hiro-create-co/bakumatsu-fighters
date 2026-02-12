@@ -2,10 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>幕末闘伝 - BAKUMATSU FIGHTERS</title>
     <meta name="description" content="ブラウザで遊べる幕末格闘ゲーム。坂本龍馬、勝海舟、吉田松陰、徳川慶喜、西郷隆盛 — 5人の志士が激突する。">
     <meta name="theme-color" content="#1a0800">
@@ -26,192 +23,811 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0a0800;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            min-height: 100dvh;
-            overflow: hidden;
-            font-family: 'MS Gothic', monospace;
-        }
-        canvas {
-            display: block;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-            touch-action: none;
-        }
-        #gameCanvas {
-            border: 2px solid #333;
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0800;
+            --bg-card: #111008;
+            --gold: #E8A000;
+            --gold-light: #FFE060;
+            --gold-dark: #8B4500;
+            --fire: #FF4400;
+            --fire-dim: #881100;
+            --text: #CCBB99;
+            --text-dim: #887755;
+            --border: #332200;
+            --anchor: #4A90D9;
+            --green: #789922;
         }
 
-        /* ===== Portrait overlay (HTML-based, no canvas issues) ===== */
-        #portraitOverlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #0a0800;
-            z-index: 9999;
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Noto Serif JP', 'MS Gothic', serif;
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            padding: 40px 20px;
         }
-        #portraitOverlay .char-sprite {
-            width: 120px;
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 50% 40%, rgba(200,80,0,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(100,20,0,0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-title {
+            font-size: clamp(48px, 10vw, 100px);
+            font-weight: 900;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
+            letter-spacing: 0.1em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(16px, 3vw, 32px);
+            font-weight: 900;
+            color: var(--fire);
+            letter-spacing: 0.3em;
+            margin-top: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-desc {
+            color: var(--text-dim);
+            font-size: clamp(13px, 2vw, 18px);
+            margin-top: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Characters parade in hero */
+        .hero-chars {
+            display: flex;
+            gap: 16px;
+            margin: 40px 0 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-chars img {
+            width: clamp(48px, 10vw, 80px);
             height: auto;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            margin-bottom: 10px;
+            filter: drop-shadow(0 0 12px rgba(200,80,0,0.4));
+            transition: transform 0.2s;
         }
-        #portraitOverlay .char-name {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 20px;
+
+        .hero-chars img:hover {
+            transform: scale(1.2) translateY(-8px);
         }
-        #portraitOverlay .speech-box {
-            border: 3px solid #C0C0C0;
-            background: #0a0a1a;
-            padding: 20px 30px;
-            max-width: 95%;
-            width: 95%;
-            position: relative;
-            margin-top: 10px;
-        }
-        #portraitOverlay .speech-box::before {
-            content: '';
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0; height: 0;
-            border-left: 12px solid transparent;
-            border-right: 12px solid transparent;
-            border-bottom: 12px solid #C0C0C0;
-        }
-        #portraitOverlay .speech-box::after {
-            content: '';
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0; height: 0;
-            border-left: 9px solid transparent;
-            border-right: 9px solid transparent;
-            border-bottom: 9px solid #0a0a1a;
-        }
-        #portraitOverlay .speech-box .inner-border {
-            border: 1px solid #808080;
-            padding: 16px 20px;
-        }
-        #portraitOverlay .speech-text {
-            font-family: 'MS Gothic', 'Courier New', monospace;
-            font-size: 17px;
-            font-weight: bold;
+
+        .play-btn {
+            display: inline-block;
+            padding: 16px 64px;
+            font-family: inherit;
+            font-size: clamp(18px, 3vw, 28px);
+            font-weight: 900;
             color: #FFF;
-            line-height: 2;
-            white-space: pre-line;
+            background: linear-gradient(180deg, var(--fire) 0%, var(--fire-dim) 100%);
+            border: 2px solid var(--gold);
+            cursor: pointer;
+            text-decoration: none;
+            letter-spacing: 0.2em;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.15s, box-shadow 0.15s;
         }
-        #portraitOverlay .sub-text {
+
+        .play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(255,68,0,0.5), 0 0 60px rgba(255,68,0,0.2);
+        }
+
+        .play-btn:active {
+            transform: translateY(1px);
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 24px;
+            color: var(--text-dim);
             font-size: 13px;
-            color: #666;
-            margin-top: 20px;
+            animation: bounce 2s infinite;
         }
 
-        /* Mobile: hide border, fullscreen canvas */
-        @media (max-width: 1024px) and (hover: none) {
-            body {
-                align-items: flex-start;
-                justify-content: flex-start;
-            }
-            #gameCanvas {
-                border: none;
-            }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
         }
 
-        /* Portrait: show overlay, hide canvas */
-        @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-            #portraitOverlay {
-                display: flex !important;
+        /* ===== SECTIONS ===== */
+        section {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .section-title {
+            font-size: clamp(24px, 5vw, 40px);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 12px;
+            background: linear-gradient(180deg, var(--gold-light), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 48px;
+            letter-spacing: 0.2em;
+        }
+
+        /* Divider */
+        .divider {
+            height: 2px;
+            max-width: 960px;
+            margin: 0 auto;
+            background: linear-gradient(90deg, transparent, var(--border), var(--fire-dim), var(--border), transparent);
+        }
+
+        /* ===== CHARACTERS ===== */
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 24px;
+        }
+
+        .char-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 24px 16px;
+            text-align: center;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .char-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-4px);
+        }
+
+        .char-card img {
+            width: 80px;
+            height: auto;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            margin-bottom: 12px;
+        }
+
+        .char-card .char-name {
+            font-size: 18px;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+
+        .char-card .char-name-en {
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .char-card .char-desc {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .char-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 12px;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .stat-label {
+            width: 28px;
+            text-align: right;
+        }
+
+        .stat-bar {
+            flex: 1;
+            height: 6px;
+            background: #1a1200;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+        }
+
+        /* ===== FEATURES ===== */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 28px 24px;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+
+        /* ===== 2ch THREAD ===== */
+        .thread-container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .thread-header {
+            background: #1a1208;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: 'MS Gothic', 'Osaka-Mono', monospace;
+        }
+
+        .thread-header .board-name {
+            color: var(--text-dim);
+            font-weight: 400;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .thread-body {
+            background: #0d0a04;
+            border: 1px solid var(--border);
+            padding: 0;
+            font-family: 'MS Gothic', 'Osaka-Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .thread-post {
+            padding: 14px 16px;
+            border-bottom: 1px solid #1a1408;
+        }
+
+        .thread-post:last-child {
+            border-bottom: none;
+        }
+
+        .post-header {
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .post-num {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .post-name {
+            color: var(--anchor);
+            font-weight: 700;
+        }
+
+        .post-body {
+            color: #CCBB99;
+            white-space: pre-line;
+            font-size: 14px;
+        }
+
+        .post-body .anchor {
+            color: var(--anchor);
+            text-decoration: none;
+        }
+
+        .post-body .anchor:hover {
+            text-decoration: underline;
+        }
+
+        .post-body .greentext {
+            color: var(--green);
+        }
+
+        .post-body .tag {
+            display: inline-block;
+            margin: 2px 4px 2px 0;
+            padding: 1px 8px;
+            font-size: 12px;
+            background: #1a1208;
+            border: 1px solid var(--border);
+            color: var(--fire);
+        }
+
+        .post-empty .cursor-blink {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .thread-footer {
+            background: #1a1208;
+            border: 1px solid var(--border);
+            border-top: none;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-family: 'MS Gothic', 'Osaka-Mono', monospace;
+        }
+
+        .thread-footer .hint {
+            color: #555;
+            font-size: 12px;
+        }
+
+        .thread-footer .hint b {
+            color: var(--fire);
+        }
+
+        .share-btn {
+            display: inline-block;
+            padding: 8px 20px;
+            font-family: 'MS Gothic', 'Osaka-Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            color: #FFF;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            text-decoration: none;
+            transition: border-color 0.2s;
+        }
+
+        .share-btn:hover {
+            border-color: var(--anchor);
+        }
+
+        /* ===== X FEED ===== */
+        .feed-container {
+            text-align: center;
+        }
+
+        .hashtag-display {
+            font-size: clamp(24px, 5vw, 36px);
+            font-weight: 900;
+            color: var(--fire);
+            margin-bottom: 12px;
+            letter-spacing: 0.05em;
+        }
+
+        .feed-desc {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .feed-embed {
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 400px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feed-embed-inner {
+            width: 100%;
+        }
+
+        .post-btn {
+            display: inline-block;
+            margin-top: 24px;
+            padding: 12px 32px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFF;
+            background: #1DA1F2;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            letter-spacing: 0.1em;
+            transition: opacity 0.2s;
+        }
+
+        .post-btn:hover {
+            opacity: 0.85;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-dim);
+            font-size: 13px;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .hero-chars {
+                gap: 8px;
             }
-            #gameCanvas {
-                display: none !important;
+            .play-btn {
+                padding: 14px 40px;
+            }
+            section {
+                padding: 60px 16px;
+            }
+            .char-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .char-card {
+                padding: 16px 12px;
+            }
+            .thread-footer {
+                flex-direction: column;
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Portrait orientation overlay -->
-    <div id="portraitOverlay">
-        <img class="char-sprite" id="portraitCharImg" src="" alt="">
-        <div class="char-name" id="portraitCharName"></div>
-        <div class="speech-box">
-            <div class="inner-border">
-                <div class="speech-text">スマホを　よこに　してくれ！&#10;&#10;よこむきで　たたかうのじゃ！</div>
-            </div>
+
+    <!-- ===== HERO ===== -->
+    <div class="hero">
+        <h1 class="hero-title">幕末闘伝</h1>
+        <div class="hero-subtitle">BAKUMATSU FIGHTERS</div>
+        <p class="hero-desc">ブラウザで遊べる幕末格闘ゲーム。5人の志士が激突する。</p>
+
+        <div class="hero-chars">
+            <img src="sprites/ryoma/idle.gif" alt="坂本龍馬" title="坂本龍馬">
+            <img src="sprites/katsu/idle.gif" alt="勝海舟" title="勝海舟">
+            <img src="sprites/shoin/idle.gif" alt="吉田松陰" title="吉田松陰">
+            <img src="sprites/yoshinobu/idle.gif" alt="徳川慶喜" title="徳川慶喜">
+            <img src="sprites/saigo/idle.gif" alt="西郷隆盛" title="西郷隆盛">
         </div>
-        <div class="sub-text">離れて目を休めましょう</div>
+
+        <a href="game.html" class="play-btn">遊 ぶ</a>
+
+        <div class="scroll-hint">&#9660; SCROLL</div>
     </div>
 
-    <canvas id="gameCanvas" width="960" height="540" tabindex="0"></canvas>
-    <script src="game.js"></script>
-    <script>
-        document.getElementById('gameCanvas').focus();
+    <div class="divider"></div>
 
-        // Portrait overlay: random character with unique dialogue
-        (function() {
-            const chars = [
-                {
-                    name: '坂本龍馬',
-                    sprite: 'sprites/ryoma/idle.gif',
-                    color: '#4A90D9',
-                    line1: '画面を横にせんかえ！',
-                    line2: '横向きで勝負じゃき！'
-                },
-                {
-                    name: '勝海舟',
-                    sprite: 'sprites/katsu/idle.gif',
-                    color: '#D94A4A',
-                    line1: '横に構えな、話にならねぇ。',
-                    line2: '横で戦るのが江戸の流儀よ。'
-                },
-                {
-                    name: '吉田松陰',
-                    sprite: 'sprites/shoin/idle.gif',
-                    color: '#4AD94A',
-                    line1: '諸君、画面を横にされよ。',
-                    line2: '志を持って横向きで挑め！'
-                },
-                {
-                    name: '徳川慶喜',
-                    sprite: 'sprites/yoshinobu/idle.gif',
-                    color: '#D9D94A',
-                    line1: '画面を横に致されよ。',
-                    line2: '横向きこそ武士の嗜みよ。'
-                },
-                {
-                    name: '西郷隆盛',
-                    sprite: 'sprites/saigo/idle.gif',
-                    color: '#D9904A',
-                    line1: '横にせんか！',
-                    line2: '横向きが薩摩の流儀でごわす！'
-                },
-            ];
-            const c = chars[Math.floor(Math.random() * chars.length)];
-            document.getElementById('portraitCharImg').src = c.sprite;
-            const nameEl = document.getElementById('portraitCharName');
-            nameEl.textContent = c.name;
-            nameEl.style.color = c.color;
-            document.querySelector('#portraitOverlay .speech-text').textContent =
-                c.line1 + '\n\n' + c.line2;
-        })();
-    </script>
+    <!-- ===== CHARACTERS ===== -->
+    <section id="characters">
+        <h2 class="section-title">参戦志士</h2>
+        <div class="section-subtitle">FIGHTERS</div>
+
+        <div class="char-grid">
+            <div class="char-card">
+                <img src="sprites/ryoma/idle.gif" alt="坂本龍馬">
+                <div class="char-name" style="color:#4A90D9">坂本龍馬</div>
+                <div class="char-name-en">RYOMA SAKAMOTO</div>
+                <div class="char-desc">海援隊を率いた維新の志士</div>
+                <div class="char-stats">
+                    <div class="stat-row"><span class="stat-label">攻</span><div class="stat-bar"><div class="stat-fill" style="width:70%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">速</span><div class="stat-bar"><div class="stat-fill" style="width:80%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">防</span><div class="stat-bar"><div class="stat-fill" style="width:50%"></div></div></div>
+                </div>
+            </div>
+
+            <div class="char-card">
+                <img src="sprites/katsu/idle.gif" alt="勝海舟">
+                <div class="char-name" style="color:#D94A4A">勝海舟</div>
+                <div class="char-name-en">KATSU KAISHU</div>
+                <div class="char-desc">江戸無血開城の立役者</div>
+                <div class="char-stats">
+                    <div class="stat-row"><span class="stat-label">攻</span><div class="stat-bar"><div class="stat-fill" style="width:50%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">速</span><div class="stat-bar"><div class="stat-fill" style="width:60%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">防</span><div class="stat-bar"><div class="stat-fill" style="width:90%"></div></div></div>
+                </div>
+            </div>
+
+            <div class="char-card">
+                <img src="sprites/shoin/idle.gif" alt="吉田松陰">
+                <div class="char-name" style="color:#4AD94A">吉田松陰</div>
+                <div class="char-name-en">YOSHIDA SHOIN</div>
+                <div class="char-desc">松下村塾の熱血教育者</div>
+                <div class="char-stats">
+                    <div class="stat-row"><span class="stat-label">攻</span><div class="stat-bar"><div class="stat-fill" style="width:60%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">速</span><div class="stat-bar"><div class="stat-fill" style="width:90%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">防</span><div class="stat-bar"><div class="stat-fill" style="width:40%"></div></div></div>
+                </div>
+            </div>
+
+            <div class="char-card">
+                <img src="sprites/yoshinobu/idle.gif" alt="徳川慶喜">
+                <div class="char-name" style="color:#D9D94A">徳川慶喜</div>
+                <div class="char-name-en">TOKUGAWA YOSHINOBU</div>
+                <div class="char-desc">最後の将軍、大政奉還の決断者</div>
+                <div class="char-stats">
+                    <div class="stat-row"><span class="stat-label">攻</span><div class="stat-bar"><div class="stat-fill" style="width:80%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">速</span><div class="stat-bar"><div class="stat-fill" style="width:50%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">防</span><div class="stat-bar"><div class="stat-fill" style="width:80%"></div></div></div>
+                </div>
+            </div>
+
+            <div class="char-card">
+                <img src="sprites/saigo/idle.gif" alt="西郷隆盛">
+                <div class="char-name" style="color:#D9904A">西郷隆盛</div>
+                <div class="char-name-en">SAIGO TAKAMORI</div>
+                <div class="char-desc">薩摩の英雄、最強の武人</div>
+                <div class="char-stats">
+                    <div class="stat-row"><span class="stat-label">攻</span><div class="stat-bar"><div class="stat-fill" style="width:100%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">速</span><div class="stat-bar"><div class="stat-fill" style="width:40%"></div></div></div>
+                    <div class="stat-row"><span class="stat-label">防</span><div class="stat-bar"><div class="stat-fill" style="width:70%"></div></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ===== FEATURES ===== -->
+    <section id="features">
+        <h2 class="section-title">特徴</h2>
+        <div class="section-subtitle">FEATURES</div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">&#9876;</div>
+                <h3>本格格闘アクション</h3>
+                <p>通常技・必殺技・超必殺技・投げ・ガード。格ゲーの基本を押さえた操作体系。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#127470;&#127477;</div>
+                <h3>幕末の志士たち</h3>
+                <p>5人の個性豊かなキャラクター。史実に基づいた必殺技で歴史を体感。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128241;</div>
+                <h3>スマホ対応</h3>
+                <p>PCでもスマホでも、ブラウザがあればすぐ遊べる。インストール不要。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#127925;</div>
+                <h3>キャラ別BGM</h3>
+                <p>各キャラクターに専用の戦闘BGMを搭載。音声合成による掛け声も。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#127918;</div>
+                <h3>アーケードモード</h3>
+                <p>日本地図を巡りながら全キャラと対戦。エンディングまで一気に駆け抜けろ。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#129302;</div>
+                <h3>4段階AI</h3>
+                <p>弱い・普通・強い・超強い。初心者から上級者まで楽しめる難易度設定。</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ===== COMMUNITY ===== -->
+    <section id="community">
+        <h2 class="section-title">みんなの声</h2>
+        <div class="section-subtitle">COMMUNITY</div>
+
+        <div class="feed-container">
+            <div class="hashtag-display">#幕末闘伝</div>
+            <p class="feed-desc">プレイ感想、ファンアート、実況動画 — ハッシュタグで投稿しよう</p>
+
+            <div class="feed-embed">
+                <div class="feed-embed-inner">
+                    <a class="twitter-timeline"
+                       data-theme="dark"
+                       data-chrome="noheader nofooter noborders transparent"
+                       data-height="500"
+                       href="https://twitter.com/hashtag/%E5%B9%95%E6%9C%AB%E9%97%98%E4%BC%9D?src=hashtag_click"
+                       >
+                       #幕末闘伝 の投稿を読み込み中...
+                    </a>
+                    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+                </div>
+            </div>
+
+            <a class="post-btn"
+               href="https://twitter.com/intent/tweet?text=%E5%B9%95%E6%9C%AB%E9%97%98%E4%BC%9D%E3%81%A7%E9%81%8A%E3%82%93%E3%81%A0%EF%BC%81%20%23%E5%B9%95%E6%9C%AB%E9%97%98%E4%BC%9D&url="
+               target="_blank"
+               rel="noopener noreferrer">
+               &#120143; でポストする
+            </a>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ===== DEV THREAD ===== -->
+    <section id="thread">
+        <h2 class="section-title">開発スレ</h2>
+        <div class="section-subtitle">DEVELOPMENT THREAD</div>
+
+        <div class="thread-container">
+            <div class="thread-header">
+                【総合】幕末闘伝 開発スレ Part.1
+                <span class="board-name">＠ゲーム制作板</span>
+            </div>
+            <div class="thread-body">
+
+                <div class="thread-post">
+                    <div class="post-header">
+                        <span class="post-num">1</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:BAKUMATU1</span>
+                    </div>
+                    <div class="post-body">幕末の偉人で格ゲー作った
+ブラウザで動く。とりあえず遊んでくれ
+
+BGM → 仮（合成音）
+ボイス → 仮（合成音声）
+ドット絵 → 仮（とりあえず動く）
+
+全部差し替えたいから協力頼む
+<span class="anchor">&gt;&gt;</span> <a href="game.html" style="color:var(--anchor)">遊ぶ</a></div>
+                </div>
+
+                <div class="thread-post">
+                    <div class="post-header">
+                        <span class="post-num">2</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:otoMAKER3</span>
+                    </div>
+                    <div class="post-body"><span class="anchor">&gt;&gt;1</span>
+BGM仮すぎて草
+和風ロックで作ってみようか？</div>
+                </div>
+
+                <div class="thread-post">
+                    <div class="post-header">
+                        <span class="post-num">3</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:voiceACT7</span>
+                    </div>
+                    <div class="post-body"><span class="anchor">&gt;&gt;1</span>
+声も合成音声じゃん
+俺やろうか？龍馬の掛け声とかなら録れるぞ</div>
+                </div>
+
+                <div class="thread-post">
+                    <div class="post-header">
+                        <span class="post-num">4</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:DotGEEK2</span>
+                    </div>
+                    <div class="post-body">ドット絵もうちょい頑張れるだろ...
+<span class="greentext">&gt;とりあえず動く</span>
+まあ味があるっちゃあるけど</div>
+                </div>
+
+                <div class="thread-post">
+                    <div class="post-header">
+                        <span class="post-num">5</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:rekiOTA55</span>
+                    </div>
+                    <div class="post-body">次のキャラ高杉晋作にしろ
+奇兵隊突撃が超必殺技な
+
+あと新選組の近藤勇も入れてくれ
+天然理心流とか絶対かっこいいだろ</div>
+                </div>
+
+                <div class="thread-post">
+                    <div class="post-header">
+                        <span class="post-num">6</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:BAKUMATU1</span>
+                    </div>
+                    <div class="post-body"><span class="anchor">&gt;&gt;2-5</span>
+ありがとう。全部歓迎
+なんでも投げてくれ
+
+<span class="tag">BGM</span> <span class="tag">ボイス</span> <span class="tag">ドット絵</span> <span class="tag">キャラ案</span> <span class="tag">技アイデア</span> <span class="tag">バグ報告</span> <span class="tag">感想</span></div>
+                </div>
+
+                <div class="thread-post post-empty">
+                    <div class="post-header">
+                        <span class="post-num">7</span> :<span class="post-name">名無しの志士</span> ：20XX/XX/XX(X) XX:XX:XX.XX <span>ID:????????</span>
+                    </div>
+                    <div class="post-body" style="color:#555; text-align:center; padding: 8px 0;"><span class="cursor-blink">|</span></div>
+                </div>
+
+            </div>
+            <div class="thread-footer">
+                <span class="hint">書き込みは X で。タグ <b>#幕末闘伝</b> をつけてもOK</span>
+                <a class="share-btn"
+                   href="https://twitter.com/intent/tweet?text=%23%E5%B9%95%E6%9C%AB%E9%97%98%E4%BC%9D%20"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                   X で書き込む
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+        <div class="footer-links">
+            <a href="game.html">遊ぶ</a>
+            <a href="#characters">キャラクター</a>
+            <a href="#community">#幕末闘伝</a>
+            <a href="#thread">開発スレ</a>
+        </div>
+        <p>&copy; 2025 幕末闘伝 - BAKUMATSU FIGHTERS</p>
+    </footer>
+
 </body>
 </html>
