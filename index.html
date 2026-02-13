@@ -501,6 +501,72 @@
             opacity: 0.85;
         }
 
+        /* ===== SUPPORT ===== */
+        .support-container {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .support-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 28px 32px;
+            text-align: center;
+            flex: 1;
+            min-width: 240px;
+            max-width: 360px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .support-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-3px);
+        }
+
+        .support-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+
+        .support-card h3 {
+            font-size: 17px;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+
+        .support-card p {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .support-link {
+            display: inline-block;
+            padding: 8px 24px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFF;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .support-link:hover {
+            opacity: 0.85;
+        }
+
+        .support-link.coffee {
+            background: #FFDD00;
+            color: #000;
+        }
+
+        .support-link.itch {
+            background: #FA5C5C;
+        }
+
         /* ===== FOOTER ===== */
         footer {
             text-align: center;
@@ -818,6 +884,29 @@ BGM仮すぎて草
 
     <div class="divider"></div>
 
+    <!-- ===== SUPPORT ===== -->
+    <section id="support">
+        <h2 class="section-title">応援する</h2>
+        <div class="section-subtitle">SUPPORT</div>
+
+        <div class="support-container">
+            <div class="support-card">
+                <div class="support-icon">&#9749;</div>
+                <h3>Buy Me a Coffee</h3>
+                <p>開発の応援に。新キャラやBGM追加の原動力になります。</p>
+                <a class="support-link coffee" href="https://buymeacoffee.com/hiroya" target="_blank" rel="noopener noreferrer">応援する</a>
+            </div>
+            <div class="support-card">
+                <div class="support-icon">&#127918;</div>
+                <h3>itch.io</h3>
+                <p>ゲームページ。フォローすると更新通知が届きます。</p>
+                <a class="support-link itch" href="https://suga-create.itch.io" target="_blank" rel="noopener noreferrer">itch.io で見る</a>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
     <!-- ===== FOOTER ===== -->
     <footer>
         <div class="footer-links">
@@ -825,6 +914,7 @@ BGM仮すぎて草
             <a href="#characters">キャラクター</a>
             <a href="#community">#幕末闘伝</a>
             <a href="#thread">開発スレ</a>
+            <a href="#support">応援する</a>
         </div>
         <p>&copy; 2025 幕末闘伝 - BAKUMATSU FIGHTERS</p>
     </footer>
