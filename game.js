@@ -116,6 +116,7 @@ const CHARACTERS = [
             super: 'sprites/ryoma/super.gif',
         },
         spriteScale: 0.28,
+        spriteStateScales: { attack: 1.8 },
         spriteOffsetY: 2,
         voice: { pitch: 140, speed: 1.0, intensity: 0.9, formantShift: 0, type: 'aggressive' },
         ending: {
@@ -194,6 +195,7 @@ const CHARACTERS = [
             super: 'sprites/katsu/super.gif',
         },
         spriteScale: 0.28,
+        spriteStateScales: { attack: 1.8 },
         spriteOffsetY: 2,
         voice: { pitch: 160, speed: 0.85, intensity: 0.6, formantShift: 30, type: 'calm' },
         ending: {
@@ -272,6 +274,7 @@ const CHARACTERS = [
             super: 'sprites/shoin/super.gif',
         },
         spriteScale: 0.28,
+        spriteStateScales: { attack: 1.5 },
         spriteOffsetY: 2,
         voice: { pitch: 180, speed: 0.9, intensity: 0.5, formantShift: 50, type: 'refined' },
         ending: {
@@ -350,6 +353,7 @@ const CHARACTERS = [
             super: 'sprites/yoshinobu/super.gif',
         },
         spriteScale: 0.28,
+        spriteStateScales: { attack: 1.2 },
         spriteOffsetY: 2,
         voice: { pitch: 120, speed: 0.75, intensity: 0.7, formantShift: -20, type: 'authoritative' },
         ending: {
@@ -428,6 +432,7 @@ const CHARACTERS = [
             super: 'sprites/saigo/super.gif',
         },
         spriteScale: 0.28,
+        spriteStateScales: { attack: 1.7 },
         spriteOffsetY: 2,
         voice: { pitch: 90, speed: 0.7, intensity: 1.0, formantShift: -40, type: 'powerful' },
         ending: {
@@ -2858,8 +2863,12 @@ class Fighter {
 
         if (hasSprite) {
             // Draw GIF sprite with visual state modifications
-            const scale = this.charData.spriteScale || 0.25;
-            const offsetY = this.charData.spriteOffsetY || 0;
+            const baseScale = this.charData.spriteScale || 0.25;
+            // Per-state scale boost: attack GIFs have smaller content within same canvas
+            const stateScales = this.charData.spriteStateScales || {};
+            const stateScale = stateScales[spriteState] || 1.0;
+            const scale = baseScale * stateScale;
+            const offsetY = (this.charData.spriteOffsetY || 0) + (stateScale > 1 ? -((stateScale - 1) * sprite.naturalHeight * baseScale * 0.15) : 0);
             const sw = sprite.naturalWidth * scale;
             const sh = sprite.naturalHeight * scale;
 
