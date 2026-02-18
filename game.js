@@ -584,15 +584,16 @@ function layoutTouchButtons() {
     touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + spread * 0.7;     touchButtons[7].r = smallBtnR; // F
 
     // Start button - game area left-bottom
+    const sysR = Math.round(32 * btnScale);
     const sysY = isPWA ? canvasH - 40 : canvasH - 28;
     touchButtons[8].x = GAME_OFFSET_X + SCREEN_W * 0.25;
     touchButtons[8].y = sysY;
-    touchButtons[8].r = startR;
+    touchButtons[8].r = sysR;
 
     // Back button - game area right-bottom
     touchButtons[9].x = GAME_OFFSET_X + SCREEN_W * 0.75;
     touchButtons[9].y = sysY;
-    touchButtons[9].r = startR;
+    touchButtons[9].r = sysR;
 }
 
 let mobileIsPortrait = false; // Track orientation for portrait message
