@@ -523,7 +523,8 @@ const touchButtons = [
     { id: 'KeyL', label: 'L',  sublabel: 'SUPER',   x: 0, y: 0, r: 28, color: '#FF44FF' },
     { id: 'KeyF', label: 'F',  sublabel: 'THROW',   x: 0, y: 0, r: 26, color: '#44FF44' },
     // System buttons
-    { id: 'Enter', label: 'START', sublabel: '',     x: 0, y: 0, r: 22, color: '#FFFFFF' },
+    { id: 'Enter',  label: 'START', sublabel: '',    x: 0, y: 0, r: 22, color: '#FFFFFF' },
+    { id: 'Escape', label: 'BACK',  sublabel: '',    x: 0, y: 0, r: 22, color: '#AAAAAA' },
 ];
 
 const touchActiveButtons = new Set(); // Currently pressed button IDs
@@ -576,8 +577,15 @@ function layoutTouchButtons() {
     touchButtons[6].x = atkCX + spread;      touchButtons[6].y = atkCY - spread;           touchButtons[6].r = btnR;      // L
     touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + spread * 0.7;     touchButtons[7].r = smallBtnR; // F
 
-    // Start button - top center
-    touchButtons[8].x = CANVAS_INTERNAL_W / 2; touchButtons[8].y = 22; touchButtons[8].r = startR;
+    // Start button - game area left-bottom (below where left character stands)
+    touchButtons[8].x = GAME_OFFSET_X + SCREEN_W * 0.25;
+    touchButtons[8].y = canvasH - 28;
+    touchButtons[8].r = startR;
+
+    // Back button - game area right-bottom (below where right character stands)
+    touchButtons[9].x = GAME_OFFSET_X + SCREEN_W * 0.75;
+    touchButtons[9].y = canvasH - 28;
+    touchButtons[9].r = startR;
 }
 
 let mobileIsPortrait = false; // Track orientation for portrait message
@@ -650,8 +658,16 @@ function getTouchCanvasPos(touch) {
     };
 }
 
+// States where BACK button should be hidden (during actual gameplay)
+const HIDE_BACK_STATES = new Set([
+    STATE.FIGHTING, STATE.ROUND_END, STATE.MATCH_END,
+    STATE.FIGHT_INTRO, STATE.VS_SCREEN, STATE.DEMO,
+]);
+
 function hitTestButton(pos) {
+    const hideBack = HIDE_BACK_STATES.has(gameState);
     for (const btn of touchButtons) {
+        if (btn.id === 'Escape' && hideBack) continue;
         const dx = pos.x - btn.x;
         const dy = pos.y - btn.y;
         if (dx * dx + dy * dy < (btn.r + 8) * (btn.r + 8)) {
@@ -752,8 +768,12 @@ if (isMobile) {
 function drawTouchControls() {
     if (!isMobile) return;
 
+    const hideBack = HIDE_BACK_STATES.has(gameState);
+
     // Buttons are drawn in canvas coordinate space (not game-offset space)
     for (const btn of touchButtons) {
+        // Hide BACK button during fight states
+        if (btn.id === 'Escape' && hideBack) continue;
         const isPressed = touchActiveButtons.has(btn.id);
         const alpha = isPressed ? 0.8 : 0.35;
 
