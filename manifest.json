@@ -1,0 +1,27 @@
+{
+  "name": "幕末闘伝 - BAKUMATSU FIGHTERS",
+  "short_name": "幕末闘伝",
+  "description": "ブラウザで遊べる幕末格闘ゲーム。5人の志士が激突する。",
+  "start_url": "/game.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a0800",
+  "theme_color": "#1a0800",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
