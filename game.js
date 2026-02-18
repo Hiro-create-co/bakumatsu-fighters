@@ -544,9 +544,16 @@ function layoutTouchButtons() {
     const canvasH = canvas.height || SCREEN_H;
     const midY = canvasH / 2 + 20; // vertical center of canvas, shifted down slightly
 
-    // Padding from edge so buttons aren't cut off (push inward)
-    const edgePad = 20;
-    const usableW = sideW - edgePad * 2; // usable width within each side panel
+    // Safe area insets in internal canvas coords
+    const safeL = Math.ceil(getSafeAreaInset('left') / canvasScale);
+    const safeR = Math.ceil(getSafeAreaInset('right') / canvasScale);
+
+    // Padding from edge so buttons aren't cut off (push inward past safe area)
+    const edgePadL = Math.max(20, safeL + 10);
+    const edgePadR = Math.max(20, safeR + 10);
+    const usableWL = sideW - edgePadL - 10; // left panel usable width
+    const usableWR = sideW - edgePadR - 10; // right panel usable width
+    const usableW = Math.min(usableWL, usableWR); // use smaller for consistent button scale
 
     // Scale buttons to fit the side panel width
     // Target: spread (center to edge button) + btnR must fit in usableW/2
@@ -564,7 +571,7 @@ function layoutTouchButtons() {
     const clampedSpreadR = Math.min(spread, maxSpreadRight);
 
     // Direction pad - left panel (center within usable area)
-    const dpadCX = edgePad + usableW / 2;
+    const dpadCX = edgePadL + usableWL / 2;
     const dpadCY = midY;
     touchButtons[0].x = dpadCX;                    touchButtons[0].y = dpadCY - spread;          touchButtons[0].r = btnR; // W
     touchButtons[1].x = dpadCX - clampedSpreadL;   touchButtons[1].y = dpadCY;                   touchButtons[1].r = btnR; // A
@@ -573,7 +580,7 @@ function layoutTouchButtons() {
 
     // Attack buttons - right panel (diamond layout, center within usable area)
     const rightPanelStart = GAME_OFFSET_X + SCREEN_W;
-    const atkCX = rightPanelStart + edgePad + usableW / 2;
+    const atkCX = rightPanelStart + (sideW - edgePadR) - usableWR / 2;
     const atkCY = midY;
     touchButtons[4].x = atkCX - clampedSpreadR;    touchButtons[4].y = atkCY;                    touchButtons[4].r = bigBtnR;   // J
     touchButtons[5].x = atkCX;                     touchButtons[5].y = atkCY - spread;            touchButtons[5].r = btnR;      // K
@@ -586,6 +593,20 @@ function layoutTouchButtons() {
 
 let mobileIsPortrait = false; // Track orientation for portrait message
 
+function getSafeAreaInset(side) {
+    // Read CSS env(safe-area-inset-*) via a temporary element
+    const el = document.createElement('div');
+    el.style.position = 'fixed';
+    el.style[side] = '0';
+    el.style.width = 'env(safe-area-inset-' + side + ', 0px)';
+    el.style.height = '0';
+    el.style.visibility = 'hidden';
+    document.body.appendChild(el);
+    const val = el.getBoundingClientRect().width;
+    document.body.removeChild(el);
+    return val;
+}
+
 function resizeCanvas() {
     if (isMobile) {
         mobileIsPortrait = window.innerHeight > window.innerWidth;
@@ -593,6 +614,8 @@ function resizeCanvas() {
         // Portrait is handled by CSS overlay (canvas is display:none)
         // Only set up canvas for landscape
         if (!mobileIsPortrait) {
+            const safeLeft = getSafeAreaInset('left');
+            const safeRight = getSafeAreaInset('right');
             const vw = window.innerWidth;
             const vh = window.innerHeight;
 
