@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bakumatsu-v1';
+const CACHE_NAME = 'bakumatsu-v2';
 const ASSETS = [
   '/game.html',
   '/game.js',

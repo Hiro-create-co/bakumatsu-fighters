@@ -537,6 +537,11 @@ let GAME_OFFSET_X = 0; // X offset to center game screen within wider canvas
 let lastTapX = -1; // Last tap position in game coordinates (for menu tap)
 let lastTapY = -1;
 
+// Detect PWA fullscreen mode
+const isPWA = window.matchMedia('(display-mode: fullscreen)').matches
+           || window.matchMedia('(display-mode: standalone)').matches
+           || (window.navigator.standalone === true);
+
 function layoutTouchButtons() {
     if (!isMobile) return;
 
@@ -547,8 +552,8 @@ function layoutTouchButtons() {
 
     // Padding from edge so buttons aren't cut off
     const edgePad = 8;
-    // Shift entire button group inward by this amount (away from screen edge)
-    const inwardShift = 15;
+    // PWA has more screen space, so shift buttons more toward center
+    const inwardShift = isPWA ? Math.round(sideW * 0.35) : 15;
     const usableW = sideW - edgePad * 2; // usable width within each side panel
 
     // Scale buttons to fit the side panel width
@@ -577,14 +582,15 @@ function layoutTouchButtons() {
     touchButtons[6].x = atkCX + spread;      touchButtons[6].y = atkCY - spread;           touchButtons[6].r = btnR;      // L
     touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + spread * 0.7;     touchButtons[7].r = smallBtnR; // F
 
-    // Start button - game area left-bottom (below where left character stands)
+    // Start button - game area left-bottom
+    const sysY = isPWA ? canvasH - 40 : canvasH - 28;
     touchButtons[8].x = GAME_OFFSET_X + SCREEN_W * 0.25;
-    touchButtons[8].y = canvasH - 28;
+    touchButtons[8].y = sysY;
     touchButtons[8].r = startR;
 
-    // Back button - game area right-bottom (below where right character stands)
+    // Back button - game area right-bottom
     touchButtons[9].x = GAME_OFFSET_X + SCREEN_W * 0.75;
-    touchButtons[9].y = canvasH - 28;
+    touchButtons[9].y = sysY;
     touchButtons[9].r = startR;
 }
 
