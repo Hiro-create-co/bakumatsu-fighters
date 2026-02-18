@@ -544,8 +544,8 @@ function layoutTouchButtons() {
     const canvasH = canvas.height || SCREEN_H;
     const midY = canvasH / 2 + 20; // vertical center of canvas, shifted down slightly
 
-    // Padding from edge so buttons aren't cut off
-    const edgePad = 8;
+    // Padding from edge so buttons aren't cut off (push inward)
+    const edgePad = 20;
     const usableW = sideW - edgePad * 2; // usable width within each side panel
 
     // Scale buttons to fit the side panel width
@@ -557,22 +557,28 @@ function layoutTouchButtons() {
     const startR = Math.round(24 * btnScale);
     const spread = Math.round(50 * btnScale);
 
+    // Clamp spread so outermost buttons stay within side panel
+    const maxSpreadLeft = usableW / 2 - btnR;
+    const maxSpreadRight = usableW / 2 - bigBtnR;
+    const clampedSpreadL = Math.min(spread, maxSpreadLeft);
+    const clampedSpreadR = Math.min(spread, maxSpreadRight);
+
     // Direction pad - left panel (center within usable area)
     const dpadCX = edgePad + usableW / 2;
     const dpadCY = midY;
-    touchButtons[0].x = dpadCX;              touchButtons[0].y = dpadCY - spread; touchButtons[0].r = btnR; // W
-    touchButtons[1].x = dpadCX - spread;     touchButtons[1].y = dpadCY;          touchButtons[1].r = btnR; // A
-    touchButtons[2].x = dpadCX + spread;     touchButtons[2].y = dpadCY;          touchButtons[2].r = btnR; // D
-    touchButtons[3].x = dpadCX;              touchButtons[3].y = dpadCY + spread;  touchButtons[3].r = btnR; // S
+    touchButtons[0].x = dpadCX;                    touchButtons[0].y = dpadCY - spread;          touchButtons[0].r = btnR; // W
+    touchButtons[1].x = dpadCX - clampedSpreadL;   touchButtons[1].y = dpadCY;                   touchButtons[1].r = btnR; // A
+    touchButtons[2].x = dpadCX + clampedSpreadL;   touchButtons[2].y = dpadCY;                   touchButtons[2].r = btnR; // D
+    touchButtons[3].x = dpadCX;                    touchButtons[3].y = dpadCY + spread;           touchButtons[3].r = btnR; // S
 
     // Attack buttons - right panel (diamond layout, center within usable area)
     const rightPanelStart = GAME_OFFSET_X + SCREEN_W;
     const atkCX = rightPanelStart + edgePad + usableW / 2;
     const atkCY = midY;
-    touchButtons[4].x = atkCX - spread;      touchButtons[4].y = atkCY;                   touchButtons[4].r = bigBtnR;   // J
-    touchButtons[5].x = atkCX;               touchButtons[5].y = atkCY - spread;           touchButtons[5].r = btnR;      // K
-    touchButtons[6].x = atkCX + spread;      touchButtons[6].y = atkCY - spread;           touchButtons[6].r = btnR;      // L
-    touchButtons[7].x = atkCX;               touchButtons[7].y = atkCY + spread * 0.7;     touchButtons[7].r = smallBtnR; // F
+    touchButtons[4].x = atkCX - clampedSpreadR;    touchButtons[4].y = atkCY;                    touchButtons[4].r = bigBtnR;   // J
+    touchButtons[5].x = atkCX;                     touchButtons[5].y = atkCY - spread;            touchButtons[5].r = btnR;      // K
+    touchButtons[6].x = atkCX + clampedSpreadR;    touchButtons[6].y = atkCY - spread;            touchButtons[6].r = btnR;      // L
+    touchButtons[7].x = atkCX;                     touchButtons[7].y = atkCY + spread * 0.7;      touchButtons[7].r = smallBtnR; // F
 
     // Start button - top center
     touchButtons[8].x = CANVAS_INTERNAL_W / 2; touchButtons[8].y = 22; touchButtons[8].r = startR;
