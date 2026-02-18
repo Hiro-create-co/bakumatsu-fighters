@@ -170,28 +170,6 @@
     <script>
         document.getElementById('gameCanvas').focus();
 
-        // Hide mobile address bar on landscape by scrolling the page
-        (function() {
-            function hideAddressBar() {
-                if (window.innerWidth > window.innerHeight) {
-                    // Temporarily make body scrollable, scroll down, then lock again
-                    document.body.style.minHeight = (window.innerHeight + 1) + 'px';
-                    window.scrollTo(0, 1);
-                    setTimeout(function() {
-                        document.body.style.minHeight = '100vh';
-                        document.body.style.minHeight = '100dvh';
-                    }, 100);
-                }
-            }
-            window.addEventListener('orientationchange', function() {
-                setTimeout(hideAddressBar, 300);
-            });
-            window.addEventListener('resize', function() {
-                setTimeout(hideAddressBar, 100);
-            });
-            hideAddressBar();
-        })();
-
         // Portrait overlay: random character with unique dialogue
         (function() {
             const chars = [
